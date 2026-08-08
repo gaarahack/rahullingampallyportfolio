@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Walkthroughs — Rahul Lingampally</title>
+<meta name="description" content="CTF and boot-to-root walkthroughs by Rahul Lingampally.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23090c0a%22/><text x=%2220%22 y=%2270%22 font-family=%22monospace%22 font-size=%2260%22 fill=%22%2339ff88%22>_</text></svg>">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<nav class="tmux-bar">
+  <div class="tmux-inner">
+    <span class="tmux-session">rahul@soc:~</span>
+    <a class="tmux-tab" href="index.html#hero">whoami</a>
+    <a class="tmux-tab" href="index.html#certs">certs</a>
+    <a class="tmux-tab" href="index.html#skills">skills</a>
+    <a class="tmux-tab" href="index.html#experience">experience</a>
+    <a class="tmux-tab" href="index.html#projects">projects</a>
+    <a class="tmux-tab is-active" href="blog.html">walkthroughs</a>
+    <a class="tmux-tab" href="index.html#contact">contact</a>
+    <span class="tmux-status" data-uptime>session 00:00:00</span>
+  </div>
+</nav>
+
+<section class="article-header" style="border-bottom:1px solid var(--border);">
+  <div class="wrap">
+    <div class="prompt"><span class="user">rahul@soc:~$</span><span class="cmd">ls -la walkthroughs/</span></div>
+    <p class="hero-tagline" style="margin-top:6px;">Boot-to-root machines I've worked through, start to finish — enumeration, exploitation, and privilege escalation, documented the way I'd want to read it myself.</p>
+  </div>
+</section>
+
+<section style="padding-top:40px;">
+  <div class="wrap">
+    <div class="wt-list">
+      <a class="wt-row" href="walkthroughs/basic-pentesting-1.html">
+        <span class="wt-status">ROOTED</span>
+        <span class="wt-info"><span class="wt-title">Basic Pentesting 1 — ProFTPD 1.3.3c Backdoor</span><span class="wt-sub">VulnHub · Metasploit backdoor module to root shell</span></span>
+        <span class="wt-arrow">read →</span>
+      </a>
+      <a class="wt-row" href="walkthroughs/dc-1.html">
+        <span class="wt-status">ROOTED</span>
+        <span class="wt-info"><span class="wt-title">DC-1 — Drupalgeddon2 to Root</span><span class="wt-sub">VulnHub · Drupal 7 RCE, credential reuse, SUID find() privesc</span></span>
+        <span class="wt-arrow">read →</span>
+      </a>
+      <a class="wt-row" href="walkthroughs/kioptrix-1.html">
+        <span class="wt-status">ROOTED</span>
+        <span class="wt-info"><span class="wt-title">Kioptrix Level 1 — SMB Enumeration to Root Shell</span><span class="wt-sub">VulnHub · Samba 2.2.1a trans2open buffer overflow</span></span>
+        <span class="wt-arrow">read →</span>
+      </a>
+      <a class="wt-row" href="walkthroughs/lazysysadmin.html">
+        <span class="wt-status">ROOTED</span>
+        <span class="wt-info"><span class="wt-title">LazySysAdmin — From Enum4linux to Root</span><span class="wt-sub">VulnHub · Anonymous SMB share, rbash escape, sudo ALL:ALL</span></span>
+        <span class="wt-arrow">read →</span>
+      </a>
+    </div>
+    <p style="margin-top:26px; font-size:12.5px; color:var(--text-faint);">More write-ups live on my <a href="https://profile.hackthebox.com/profile/019c4aa6-72b5-7012-af2a-16db14cd5bfb" target="_blank" rel="noopener">Hack The Box profile</a>.</p>
+  </div>
+</section>
+
+<footer>
+  rahullingampally.online — built in a terminal, deployed on GitHub Pages
+</footer>
+
+<script src="assets/script.js"></script>
+</body>
+</html>

