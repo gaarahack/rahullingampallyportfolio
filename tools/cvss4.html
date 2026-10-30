@@ -1,0 +1,3226 @@
+<!DOCTYPE html>
+
+<html data-theme="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<title>CVSS v4.0 Calculator — Rahul Lingampally</title>
+<meta content="Interactive CVSS v4.0 base score calculator by Rahul Lingampally." name="description"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+      :root {
+        color-scheme: dark;
+        --bg: #090c0a;
+        --surface: #0f1512;
+        --surface2: #131b17;
+        --line: #1e2b23;
+        --line2: #2c4234;
+        --text: #d3ded6;
+        --muted: #7c8f82;
+        --accent: #39ff88;
+        --font: 'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+        --Critical: #f85c78;
+        --High: #ffab6a;
+        --Medium: #ffcf63;
+        --Low: #7cda9e;
+        --None: #a2b0c0;
+      }
+      html[data-theme="light"] {
+        color-scheme: light;
+        --bg: #eef4f0;
+        --surface: #f7fbf8;
+        --surface2: #eaf2ec;
+        --line: #d0ded4;
+        --line2: #a9bfaf;
+        --text: #17251c;
+        --muted: #52685a;
+        --accent: #147344;
+        --Critical: #c83350;
+        --High: #b15e12;
+        --Medium: #946510;
+        --Low: #19734b;
+        --None: #758392;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        height: 100%;
+        scroll-behavior: auto;
+      }
+      body {
+        margin: 0;
+        height: 100vh;
+        height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--text);
+        font: 13px/1.5 var(--font);
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+      button {
+        cursor: pointer;
+        color: inherit;
+      }
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.45;
+      }
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible,
+      summary:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      a {
+        color: var(--accent);
+      }
+      .site-header {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        height: 46px;
+        min-height: 46px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 clamp(14px, 2vw, 28px);
+        border-bottom: 1px solid var(--line);
+        background: rgba(9, 12, 10, 0.92);
+        backdrop-filter: blur(6px);
+        gap: 12px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+      }
+      .brand .session {
+        color: var(--accent);
+        white-space: nowrap;
+      }
+      .brand .brand-name {
+        color: var(--text);
+        opacity: 0.9;
+        white-space: nowrap;
+      }
+      .header-right {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--muted);
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        text-transform: lowercase;
+      }
+      .header-right .status-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 8px var(--accent);
+      }
+      .theme {
+        border: 1px solid var(--line2);
+        border-radius: 10px;
+        background: var(--surface2);
+        padding: 8px 11px;
+        min-width: 38px;
+      }
+      .app {
+        flex: 1;
+        min-height: 0;
+        width: 100%;
+        max-width: 1680px;
+        margin: auto;
+        padding: clamp(12px, 1.7vh, 20px) clamp(15px, 2.7vw, 44px) 14px;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: 14px;
+      }
+      .toolbar {
+        display: grid;
+        grid-template-columns: minmax(230px, 1fr) auto;
+        gap: 12px 18px;
+        align-items: center;
+        min-width: 0;
+        border: 1px solid var(--line);
+        border-radius: 15px;
+      }
+      .tool-left {
+        display: flex;
+        align-items: center;
+      }
+      .tool-input {
+        position: relative;
+        flex: 1;
+        min-width: 0;
+      }
+      .tool-input input::placeholder {
+        color: var(--muted);
+      }
+      .btn {
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+      }
+      .btn:hover {
+        border-color: var(--accent);
+      }
+      .btn.primary {
+        font-weight: 800;
+      }
+      html[data-theme="light"] .btn.primary {
+        color: white;
+      }
+      .toolbar-foot {
+        grid-column: 1/-1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .toolbar-foot strong {
+        font-weight: 700;
+        color: var(--text);
+      }
+      #msg {
+        font-size: 11px;
+        text-align: right;
+        min-height: 14px;
+        max-width: 60%;
+        color: var(--muted);
+      }
+      #msg[data-kind="bad"] {
+        color: #ef929b;
+      }
+      #msg[data-kind="ok"] {
+        color: var(--accent);
+      }
+      .workspace {
+        min-height: 0;
+        display: grid;
+        grid-template-columns: minmax(0, 1.55fr) minmax(330px, 0.9fr);
+        gap: 14px;
+        align-items: stretch;
+      }
+      .input-panel,
+      .results {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 17px;
+        min-width: 0;
+        min-height: 0;
+        overflow: auto;
+        scrollbar-width: thin;
+        scrollbar-color: var(--line2) transparent;
+      }
+      .input-panel {
+        padding: 17px 19px 18px;
+      }
+      .intro-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 11px;
+      }
+      .eyebrow {
+        display: block;
+        color: var(--accent);
+        font:
+          700 10px ui-monospace,
+          monospace;
+        letter-spacing: 0.17em;
+        text-transform: uppercase;
+      }
+      .intro-row h1 {
+        font-size: clamp(20px, 2.2vw, 27px);
+        letter-spacing: -0.03em;
+        line-height: 1.1;
+        margin: 5px 0 5px;
+      }
+      .intro-row p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 11.7px;
+      }
+      .part {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        margin-top: 10px;
+        background: color-mix(in srgb, var(--surface2) 65%, transparent);
+      }
+      .fields {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        padding: 4px 12px 12px;
+      }
+      .field {
+        min-width: 0;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 8px 10px 9px;
+      }
+      .field.answered {
+        border-color: color-mix(in srgb, var(--accent) 33%, var(--line));
+      }
+      .field select {
+        width: 100%;
+        height: 34px;
+        border: 1px solid var(--line2);
+        border-radius: 7px;
+        padding: 0 8px;
+        background: var(--surface2);
+        font-size: 11.5px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .field select:invalid {
+        color: var(--muted);
+      }
+      .results {
+        display: flex;
+        flex-direction: column;
+      }
+      .ring {
+        position: relative;
+      }
+      .ring circle {
+        fill: none;
+        stroke-width: 7;
+        stroke-linecap: round;
+      }
+      .vectors {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .vector-item {
+        border: 1px solid var(--line);
+      }
+      .vector-label {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .vector-label span {
+        font-weight: 500;
+        text-transform: none;
+        letter-spacing: 0;
+      }
+      .vector-item code {
+        color: var(--accent);
+        font:
+          11px/1.5 ui-monospace,
+          Consolas,
+          monospace;
+        user-select: all;
+      }
+      .vector-item code.placeholder {
+        color: var(--muted);
+        font: 11px/1.5 inherit;
+      }
+      .assumptions {
+        background: color-mix(in srgb, var(--accent) 4%, var(--surface2));
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .assumptions strong {
+        color: var(--text);
+        font-size: 11px;
+      }
+      .assumptions p {
+        margin: 4px 0 0;
+      }
+      .results .how {
+        font-size: 11px;
+        border-top: 1px solid var(--line);
+        padding-top: 8px;
+      }
+      .results .how p {
+        font-size: 10.5px;
+        color: var(--muted);
+      }
+      @media (max-height: 830px) and (min-width: 900px) {
+        .app {
+          padding-top: 10px;
+          gap: 10px;
+        }
+        .site-header {
+          height: 57px;
+          min-height: 57px;
+        }
+        .toolbar {
+          padding: 9px 12px;
+        }
+        .input-panel {
+          padding: 13px 15px;
+        }
+        .intro-row {
+          margin-bottom: 6px;
+        }
+        .part {
+          margin-top: 7px;
+        }
+        .fields {
+          gap: 6px;
+          padding: 3px 10px 9px;
+        }
+        .field {
+          padding: 6px 8px;
+        }
+        .field select {
+          height: 31px;
+        }
+        .results {
+          padding: 15px;
+          gap: 9px;
+        }
+        .ring {
+          width: 120px;
+          height: 120px;
+        }
+        .vector-item {
+          padding: 8px 10px;
+        }
+      }
+      @media (max-width: 1100px) {
+        .workspace {
+          grid-template-columns: minmax(0, 1.3fr) minmax(310px, 0.9fr);
+        }
+        .fields {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .toolbar {
+          grid-template-columns: 1fr;
+        }
+        .tool-actions {
+          justify-content: flex-start;
+        }
+        .toolbar-foot {
+          padding-top: 0;
+        }
+      }
+      @media (max-width: 760px) {
+        body {
+          height: auto;
+          min-height: 100dvh;
+          overflow: auto;
+        }
+        .site-header {
+          height: 63px;
+          min-height: 63px;
+          padding: 0 15px;
+        }
+        .app {
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+          padding: 12px 12px 26px;
+        }
+        .toolbar {
+          display: flex;
+          flex-direction: column;
+          align-items: stretch;
+          padding: 12px;
+        }
+        .tool-actions {
+          justify-content: flex-start;
+        }
+        .toolbar-foot {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 4px;
+        }
+        .toolbar-foot #msg {
+          max-width: 100%;
+          text-align: left;
+        }
+        .workspace {
+          display: flex;
+          flex-direction: column;
+        }
+        .input-panel,
+        .results {
+          overflow: visible;
+          min-height: auto;
+        }
+        .results {
+          order: -1;
+        }
+        .ring {
+          width: 112px;
+          height: 112px;
+        }
+        .ring-center b {
+          font-size: 36px;
+        }
+        .score-desc {
+          max-width: 210px;
+        }
+        .fields {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      .part {
+        overflow: visible;
+      }
+      @media (min-width: 991px) and (max-width: 1100px) {
+        .fields {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+      @media (min-width: 1250px) and (min-height: 840px) {
+        .input-panel {
+          padding: 15px 19px 16px;
+        }
+        .part {
+          margin-top: 7px;
+        }
+        .fields {
+          padding: 3px 12px 9px;
+        }
+        .field select {
+          height: 32px;
+        }
+        .field {
+          padding: 7px 10px 8px;
+        }
+      }
+      @media (max-width: 430px) {
+        .site-header .brand b {
+          font-size: 15px;
+        }
+        .tool-left {
+          flex-wrap: wrap;
+        }
+        .tool-input {
+          flex-basis: 100%;
+        }
+        .input-panel {
+          padding: 13px;
+        }
+        .fields {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 7px;
+        }
+        .field {
+          padding: 7px;
+        }
+        .results {
+          padding: 15px;
+        }
+        .btn {
+          padding: 8px 9px;
+        }
+      }
+      .sev-pill[data-sev="None"] {
+        --ball: var(--None);
+      }
+      .sev-pill[data-sev="Low"] {
+        --ball: var(--Low);
+      }
+      .sev-pill[data-sev="Medium"] {
+        --ball: var(--Medium);
+      }
+      .sev-pill[data-sev="High"] {
+        --ball: var(--High);
+      }
+      .sev-pill.active {
+        color: var(--text);
+        border-color: var(--ball);
+        box-shadow: 0 0 0 1px var(--ball) inset;
+      }
+      .sev-pill b {
+        font-weight: 800;
+      }
+      .field select:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      @media (max-width: 1200px) {
+        .severity-band {
+          gap: 4px;
+        }
+        .sev-pill {
+          font-size: 9px;
+          padding: 4px 6px;
+        }
+      }
+      .s369-vector .vector-label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 9px;
+      }
+      .s369-vector .vector-label strong {
+        letter-spacing: 0.075em;
+        font-size: 11px;
+      }
+      .vector-copy {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border: 1px solid var(--line2);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--text);
+        cursor: pointer;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(3px);
+        transition:
+          opacity 0.15s,
+          transform 0.15s,
+          border-color 0.15s;
+      }
+      .s369-vector:hover .vector-copy,
+      .s369-vector:focus-within .vector-copy {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0);
+      }
+      .vector-copy:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .vector-copy:disabled {
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
+      @media (hover: none) {
+        .vector-copy:not(:disabled) {
+          opacity: 1;
+          pointer-events: auto;
+          transform: none;
+        }
+      }
+      @media (max-width: 1180px) {
+        .sev-pill {
+          font-size: 9px;
+          padding: 4px 6px;
+        }
+        .severity-band {
+          gap: 4px;
+        }
+      }
+      .toolbar {
+        border-color: var(--line2);
+        background: linear-gradient(
+          145deg,
+          var(--surface),
+          color-mix(in srgb, var(--surface2) 45%, var(--surface))
+        );
+        box-shadow: 0 10px 32px #0000000c;
+        column-gap: 14px;
+        row-gap: 10px;
+        padding: 13px 15px;
+      }
+      .tool-left {
+        gap: 10px;
+        min-width: 0;
+      }
+      .tool-input input {
+        height: 38px;
+        width: 100%;
+        min-width: 0;
+        color: var(--text);
+        padding: 0 11px;
+        font:
+          11.5px ui-monospace,
+          SFMono-Regular,
+          Consolas,
+          monospace;
+        border-radius: 11px;
+        border: 1px solid var(--line2);
+        background: var(--surface2);
+        font-size: 12px;
+        letter-spacing: 0.015em;
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s,
+          background 0.2s;
+      }
+      .tool-input input:hover {
+        border-color: color-mix(in srgb, var(--accent) 38%, var(--line2));
+      }
+      .tool-input input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+        outline: 0;
+      }
+      .btn {
+        min-height: 39px;
+        display: inline-flex;
+        gap: 8px;
+        padding: 9px 13px;
+        border-radius: 10px;
+        background: var(--surface2);
+        border: 1px solid var(--line2);
+        color: var(--text);
+        font-size: 11.5px;
+        font-weight: 700;
+        line-height: 1;
+        letter-spacing: 0.005em;
+        box-shadow: 0 1px 1px #0000000b;
+        transition:
+          transform 0.15s ease,
+          border-color 0.15s ease,
+          background 0.15s ease,
+          box-shadow 0.15s ease,
+          color 0.15s ease;
+      }
+      .btn .ui-icon {
+        flex: 0 0 17px;
+        width: 17px;
+        height: 17px;
+      }
+      .btn:not(:disabled):hover {
+        transform: translateY(-1px);
+        background: color-mix(in srgb, var(--accent) 9%, var(--surface2));
+        border-color: color-mix(in srgb, var(--accent) 67%, var(--line2));
+        box-shadow: 0 5px 16px #0000001a;
+      }
+      .btn:not(:disabled):active {
+        transform: translateY(0);
+        box-shadow: 0 1px 2px #00000017;
+      }
+      .btn:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+      }
+      .btn.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #071d17;
+        box-shadow: 0 3px 9px color-mix(in srgb, var(--accent) 16%, transparent);
+      }
+      .btn.primary:not(:disabled):hover {
+        background: color-mix(in srgb, var(--accent) 86%, white);
+        border-color: var(--accent);
+        color: #071d17;
+        box-shadow: 0 5px 18px
+          color-mix(in srgb, var(--accent) 28%, transparent);
+      }
+      html[data-theme="light"] .btn.primary {
+        color: #fff;
+        background: #117f60;
+        border-color: #117f60;
+      }
+      html[data-theme="light"] .btn.primary:not(:disabled):hover {
+        background: #0a6e52;
+        color: #fff;
+      }
+      .btn.ghost {
+        background: transparent;
+        border-color: var(--line2);
+      }
+      .btn:disabled {
+        opacity: 0.46;
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+      .tool-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .toolbar-foot {
+        border-top: 1px solid color-mix(in srgb, var(--line2) 65%, transparent);
+        padding-top: 10px;
+        gap: 10px;
+      }
+      #msg {
+        font-weight: 650;
+      }
+      .field {
+        position: relative;
+        transition:
+          border-color 0.18s,
+          background 0.18s;
+      }
+      .field:has(.help[open]) {
+        z-index: 55;
+        border-color: color-mix(in srgb, var(--accent) 65%, var(--line2));
+      }
+      .sev-pill {
+        display: inline-flex;
+        align-items: center;
+        white-space: nowrap;
+        line-height: 1.25;
+        font-variant-numeric: tabular-nums;
+        border-radius: 999px;
+      }
+      .sev-pill[data-sev="Critical"] {
+        --ball: var(--Critical);
+      }
+      .sev-pill[data-sev="Critical"] b {
+        color: var(--Critical);
+      }
+      .sev-pill[data-sev="Critical"].active {
+        background: color-mix(in srgb, var(--Critical) 16%, var(--surface2));
+        color: var(--Critical);
+        box-shadow:
+          0 0 0 1px var(--Critical) inset,
+          0 0 16px color-mix(in srgb, var(--Critical) 13%, transparent);
+      }
+      .sev-pill[data-sev="Critical"].active b {
+        color: var(--Critical);
+      }
+      .results .how summary {
+        cursor: pointer;
+        font-weight: 700;
+        color: var(--text);
+        padding: 5px 0;
+      }
+      .results .how[open] summary {
+        color: var(--accent);
+      }
+      .vector-copy:focus-visible {
+        opacity: 1;
+        pointer-events: auto;
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      @media (max-width: 1250px) {
+        .toolbar {
+          column-gap: 10px;
+          padding: 11px 12px;
+        }
+        .btn {
+          padding: 8px 10px;
+        }
+        .tool-actions {
+          gap: 6px;
+        }
+      }
+      @media (max-width: 760px) {
+        .toolbar {
+          padding: 13px;
+        }
+        .tool-left {
+          gap: 8px;
+        }
+        .tool-actions {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          width: 100%;
+        }
+        .tool-actions .btn {
+          min-width: 0;
+          padding-inline: 6px;
+        }
+      }
+      @media (max-width: 430px) {
+        .tool-actions .btn {
+          gap: 4px;
+          font-size: 10.5px;
+        }
+        .btn .ui-icon {
+          width: 15px;
+          height: 15px;
+        }
+        .sev-pill {
+          font-size: 9px;
+          padding: 5px 7px;
+        }
+      }
+      .results {
+        padding: 19px 20px;
+      }
+      .results-heading strong {
+        font-size: 13px;
+        letter-spacing: 0.01em;
+      }
+      .results-heading span {
+        text-transform: uppercase;
+        font-size: 9.5px;
+        letter-spacing: 0.11em;
+        color: var(--muted);
+      }
+      .score-hero {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .ring .fg {
+        stroke: var(--c, var(--None));
+        stroke-dasharray: 326.7;
+        stroke-dashoffset: 326.7;
+        stroke-width: 8;
+        transition:
+          stroke-dashoffset 0.35s ease,
+          stroke 0.3s ease,
+          filter 0.3s ease;
+      }
+      .ring[data-score-severity="Critical"] .fg {
+        filter: drop-shadow(0 0 5px var(--Critical))
+          drop-shadow(
+            0 0 5px color-mix(in srgb, var(--Critical) 70%, transparent)
+          );
+      }
+      .ring[data-score-severity="High"] .fg {
+        filter: drop-shadow(
+          0 0 5px color-mix(in srgb, var(--High) 70%, transparent)
+        );
+      }
+      .ring[data-score-severity="Medium"] .fg {
+        filter: drop-shadow(
+          0 0 5px color-mix(in srgb, var(--Medium) 60%, transparent)
+        );
+      }
+      .ring[data-score-severity="Low"] .fg {
+        filter: drop-shadow(
+          0 0 5px color-mix(in srgb, var(--Low) 60%, transparent)
+        );
+      }
+      .score-hero-content {
+        min-width: 0;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      .severity-band .severity-title {
+        color: var(--muted);
+        letter-spacing: 0.03em;
+        font-size: 11px;
+        font-weight: 750;
+        margin-right: 2px;
+      }
+      .sev-pill {
+        --ball: var(--None);
+        font-size: 10px;
+        min-height: 27px;
+        border: 1px solid var(--line2);
+        gap: 6px;
+        padding: 5px 9px;
+      }
+      .sev-pill.active {
+        background: var(--ball) !important;
+        border-color: var(--ball) !important;
+        color: #10212b !important;
+        box-shadow:
+          0 0 0 1px color-mix(in srgb, var(--ball) 80%, transparent),
+          0 0 17px color-mix(in srgb, var(--ball) 48%, transparent) !important;
+      }
+      .sev-pill.active b,
+      .sev-pill[data-sev="Critical"].active b {
+        color: #0d1820 !important;
+      }
+      .sev-pill[data-sev="Critical"].active {
+        background: var(--Critical) !important;
+        color: #17080c !important;
+        border-color: var(--Critical) !important;
+        box-shadow:
+          0 0 0 1px var(--Critical),
+          0 0 22px color-mix(in srgb, var(--Critical) 55%, transparent) !important;
+      }
+      .sev-pill[data-sev="Critical"].active b {
+        color: #17080c !important;
+      }
+      .s369-vector .vector-content {
+        position: relative;
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        gap: 8px;
+        border: 1px solid var(--line2);
+        border-radius: 9px;
+        padding: 10px 11px;
+        background: color-mix(in srgb, var(--bg) 45%, var(--surface2));
+      }
+      .s369-vector .vector-content code {
+        display: block;
+        flex: 1;
+        min-width: 0;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        font-size: 11.25px;
+        line-height: 1.6;
+      }
+      .disclosure {
+        color: var(--muted);
+        margin-top: auto;
+        line-height: 1.55;
+        font-size: 10px;
+        padding-top: 5px;
+      }
+      @media (min-width: 900px) and (max-width: 1250px) {
+        .score-hero {
+          gap: 10px;
+        }
+        .score-hero .ring {
+          width: 115px;
+          height: 115px;
+        }
+        .score-hero-content {
+          gap: 7px;
+        }
+        .severity-band {
+          gap: 5px;
+        }
+        .sev-pill {
+          font-size: 9px;
+          padding: 5px 7px;
+        }
+      }
+      @media (min-width: 900px) and (max-height: 830px) {
+        .results {
+          padding: 14px 15px;
+          gap: 8px;
+        }
+        .score-hero {
+          padding: 3px 0 8px;
+        }
+        .score-hero .ring {
+          width: 112px;
+          height: 112px;
+        }
+        .score-hero-content {
+          gap: 7px;
+        }
+        .score-hero .score-desc {
+          font-size: 10px;
+        }
+        .severity-band {
+          padding-bottom: 8px;
+        }
+        .sev-pill {
+          min-height: 23px;
+          padding: 4px 7px;
+        }
+      }
+      @media (max-width: 760px) {
+        .results {
+          padding: 17px;
+        }
+        .score-hero .ring {
+          width: 120px;
+          height: 120px;
+        }
+        .score-hero-content {
+          gap: 9px;
+        }
+      }
+      @media (max-width: 440px) {
+        .score-hero {
+          gap: 10px;
+          align-items: center;
+        }
+        .score-hero .ring {
+          width: 105px;
+          height: 105px;
+        }
+        .score-hero-content {
+          gap: 7px;
+        }
+        .score-hero .score-desc {
+          font-size: 10px;
+        }
+        .sev-pill {
+          font-size: 9px;
+          padding: 5px 7px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .btn,
+        .field,
+        .sev-pill {
+          transition: none;
+        }
+        .ring .fg,
+        .sev-pill {
+          transition: none;
+        }
+      }
+      .tool-actions {
+        align-items: center;
+        justify-content: flex-end;
+      }
+      .score-hero {
+        justify-content: flex-start;
+      }
+      .score-hero-content {
+        gap: 0;
+        align-self: stretch;
+        justify-content: center;
+        align-items: flex-start;
+      }
+      @media (min-width: 900px) and (max-height: 830px) {
+        .score-hero {
+          min-height: 124px;
+          gap: 16px;
+        }
+        .score-hero .score-desc {
+          font-size: 11px;
+        }
+      }
+      @media (max-width: 1100px) {
+        .tool-actions {
+          justify-content: flex-start;
+        }
+      }
+      @media (max-width: 760px) {
+        .tool-actions {
+          display: flex;
+          justify-content: flex-start;
+          gap: 8px;
+        }
+        .tool-actions .btn {
+          flex: 1;
+          max-width: 180px;
+        }
+        .score-hero {
+          min-height: 136px;
+        }
+        .score-hero .score-desc {
+          font-size: 11.5px;
+        }
+      }
+      @media (max-width: 440px) {
+        .score-hero {
+          gap: 15px;
+          min-height: 120px;
+        }
+        .score-hero .score-desc {
+          font-size: 11px;
+        }
+        .tool-actions .btn {
+          max-width: none;
+        }
+      }
+      .results {
+        background: var(--surface);
+        box-shadow: none;
+        gap: 12px;
+      }
+      .results-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--line);
+      }
+      .score-hero {
+        min-height: 142px;
+        gap: 19px;
+        padding: 8px 0 15px;
+      }
+      .score-hero .ring {
+        flex: none;
+        --c: var(--None);
+        width: clamp(112px, 11.5vw, 144px);
+        height: clamp(112px, 11.5vw, 144px);
+      }
+      .ring svg {
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+        overflow: visible;
+      }
+      .ring .bg {
+        stroke: var(--line2);
+        opacity: 0.78;
+      }
+      .ring .fg,
+      .ring[data-score-severity] .fg {
+        filter: none !important;
+        stroke-width: 8;
+        transition:
+          stroke-dashoffset 0.24s ease,
+          stroke 0.2s ease,
+          opacity 0.2s ease;
+      }
+      .ring[data-score-severity="Pending"] .fg,
+      .ring[data-score-severity="None"] .fg {
+        opacity: 0;
+      }
+      .ring-center {
+        position: absolute;
+        inset: 0;
+        place-content: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 4px;
+        text-align: center;
+        padding: 0 7px;
+      }
+      .ring-center b {
+        font-size: clamp(39px, 4vw, 50px);
+        line-height: 1;
+        font-weight: 800;
+        letter-spacing: -0.045em;
+        font-variant-numeric: tabular-nums;
+      }
+      .ring-center small {
+        text-transform: uppercase;
+        margin-inline: auto;
+        display: block;
+        font-size: 10px;
+        line-height: 1.3;
+        letter-spacing: 0.055em;
+        white-space: nowrap;
+        max-width: none;
+        margin: 0;
+        color: var(--muted);
+        font-weight: 750;
+        text-shadow: none !important;
+      }
+      .ring[data-score-severity="Critical"] .ring-center small {
+        color: var(--Critical);
+      }
+      .ring[data-score-severity="High"] .ring-center small {
+        color: var(--High);
+      }
+      .ring[data-score-severity="Medium"] .ring-center small {
+        color: var(--Medium);
+      }
+      .ring[data-score-severity="Low"] .ring-center small {
+        color: var(--Low);
+      }
+      .score-hero .score-desc {
+        margin: 0;
+        text-align: left;
+        color: var(--muted);
+        font-size: 12px;
+        max-width: 255px;
+        line-height: 1.6;
+      }
+      .severity-band {
+        display: flex;
+        flex-wrap: wrap;
+        margin-bottom: 11px;
+        row-gap: 7px;
+        column-gap: 7px;
+        border: 0;
+        border-bottom: 1px solid var(--line);
+        margin: 0 0 1px;
+        gap: 7px;
+        padding: 4px 0 13px;
+        align-items: center;
+      }
+      .sev-pill {
+        background: var(--surface2);
+        border-color: var(--line2);
+        box-shadow: none !important;
+        filter: none !important;
+        text-shadow: none !important;
+        color: var(--muted);
+        transition:
+          background 0.18s,
+          border-color 0.18s,
+          color 0.18s;
+      }
+      .sev-pill i {
+        background: var(--ball);
+        flex-shrink: 0;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        flex: none;
+        box-shadow: none;
+        box-shadow: none !important;
+      }
+      .sev-pill.active,
+      .sev-pill[data-sev="Critical"].active {
+        background: color-mix(
+          in srgb,
+          var(--ball) 9%,
+          var(--surface2)
+        ) !important;
+        border: 1px solid color-mix(in srgb, var(--ball) 65%, var(--line2)) !important;
+        color: var(--text) !important;
+        box-shadow: none !important;
+      }
+      .sev-pill.active b {
+        color: var(--text) !important;
+      }
+      .sev-pill[data-sev="Critical"] {
+        color: var(--Critical);
+        background: color-mix(in srgb, var(--Critical) 5%, var(--surface2));
+        border-color: color-mix(in srgb, var(--Critical) 44%, var(--line2));
+      }
+      .sev-pill[data-sev="Critical"] b,
+      .sev-pill[data-sev="Critical"].active,
+      .sev-pill[data-sev="Critical"].active b {
+        color: var(--Critical) !important;
+      }
+      .s369-vector {
+        position: relative;
+        padding: 12px 13px;
+        min-width: 0;
+        border-color: var(--line2);
+        border-radius: 12px;
+        background: var(--surface2);
+        box-shadow: none;
+      }
+      @media (min-width: 900px) and (max-height: 830px) {
+        .score-hero {
+          min-height: 122px;
+          gap: 14px;
+          padding: 5px 0 10px;
+        }
+        .score-hero .ring {
+          width: 112px;
+          height: 112px;
+        }
+      }
+      @media (max-width: 440px) {
+        .score-hero {
+          gap: 13px;
+          min-height: 119px;
+        }
+        .score-hero .ring {
+          width: 105px;
+          height: 105px;
+        }
+        .ring-center b {
+          font-size: 37px;
+        }
+        .ring-center small {
+          font-size: 9px;
+        }
+        .score-hero .score-desc {
+          font-size: 11px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ring .fg,
+        .sev-pill {
+          transition: none;
+        }
+      }
+      .ring[data-score-severity="Pending"] .ring-center b {
+        font-size: 30px !important;
+        font-weight: 450 !important;
+        line-height: 1 !important;
+        letter-spacing: 0 !important;
+        color: var(--muted);
+        opacity: 0.82;
+      }
+      @media (max-width: 440px) {
+        .ring[data-score-severity="Pending"] .ring-center b {
+          font-size: 26px !important;
+        }
+      }
+      .sev-pill.active,
+      .sev-pill[data-sev="Critical"].active {
+        background: var(--ball) !important;
+        border-color: var(--ball) !important;
+        color: #0b1620 !important;
+        box-shadow: none !important;
+        filter: none !important;
+        text-shadow: none !important;
+      }
+      .sev-pill.active b,
+      .sev-pill[data-sev="Critical"].active b {
+        color: #0b1620 !important;
+      }
+      .sev-pill.active i {
+        background: #0b1620 !important;
+        box-shadow: none !important;
+      }
+      .sev-pill[data-sev="Critical"]:not(.active) {
+        color: var(--Critical) !important;
+        border-color: color-mix(
+          in srgb,
+          var(--Critical) 50%,
+          var(--line2)
+        ) !important;
+        background: color-mix(
+          in srgb,
+          var(--Critical) 5%,
+          var(--surface2)
+        ) !important;
+      }
+      .sev-pill[data-sev="Critical"]:not(.active) b {
+        color: var(--Critical) !important;
+      }
+      .ring[data-score-severity="Pending"] .ring-center {
+        gap: 8px;
+        transform: translateY(-1px);
+        gap: 7px !important;
+        transform: none !important;
+        text-align: center !important;
+      }
+      .ring[data-score-severity="Pending"] .ring-center b {
+        font-family: inherit;
+        font-size: 28px !important;
+        font-weight: 500 !important;
+        line-height: 1 !important;
+        letter-spacing: 0 !important;
+        color: var(--muted) !important;
+        opacity: 0.9;
+      }
+      .ring[data-score-severity="Pending"] .ring-center small {
+        line-height: 1.2;
+        letter-spacing: 0.085em;
+        font-weight: 650;
+        color: var(--muted);
+        font-size: 10px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.055em !important;
+        line-height: 1.2 !important;
+        white-space: nowrap;
+      }
+      .s369-vector .vector-label #vectorCopyStatus {
+        transition: color 0.15s ease;
+        white-space: nowrap;
+      }
+      .s369-vector .vector-label #vectorCopyStatus.copy-success {
+        color: #8de3bb;
+        font-weight: 700;
+      }
+      .s369-vector .vector-label #vectorCopyStatus.copy-error {
+        color: #ef6474;
+        font-weight: 700;
+      }
+      .s369-vector .vector-copy.copy-success {
+        color: #8de3bb;
+        border-color: #569879;
+        background: color-mix(in srgb, #8de3bb 9%, var(--surface));
+      }
+      .s369-vector .vector-copy.copy-error {
+        color: #ef6474;
+        border-color: #ef6474;
+      }
+      .ring-center b.score-uniform-size {
+        font-size: clamp(27px, 2.65vw, 38px);
+        letter-spacing: -0.055em;
+        white-space: nowrap;
+      }
+      @media (max-width: 760px) {
+        .ring-center b.score-uniform-size {
+          font-size: 30px;
+        }
+      }
+      .sev-pill .severity-range {
+        font-weight: 800;
+        font-size: inherit;
+        line-height: 1.2;
+        letter-spacing: 0.005em;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .sev-pill {
+        column-gap: 7px;
+      }
+      .sev-pill.active .severity-range {
+        color: inherit;
+      }
+      @media (max-width: 440px) {
+        .ring-center b.score-uniform-size {
+          font-size: 27px;
+        }
+        .sev-pill {
+          column-gap: 5px;
+        }
+      }
+
+      /* ---------- Views: Calculator and Load vector tabs ---------- */
+      [hidden] {
+        display: none !important;
+      }
+      .view-tabs {
+        display: inline-flex;
+        gap: 4px;
+        padding: 4px;
+        border: 1px solid var(--line2);
+        border-radius: 12px;
+        background: var(--surface2);
+      }
+      .view-tab {
+        min-height: 33px;
+        padding: 7px 14px;
+        border: 0;
+        border-radius: 9px;
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .view-tab:hover {
+        color: var(--text);
+      }
+      .view-tab.active {
+        background: var(--accent);
+        color: #071d17;
+      }
+      .view-tab:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .load-panel {
+        align-self: start;
+      }
+      .load-panel .tool-left {
+        margin-top: 10px;
+      }
+      .load-hint {
+        margin: 10px 0 0;
+        color: var(--muted);
+        font-size: 11.5px;
+      }
+
+      /* ---------- Questions ---------- */
+      .field label {
+        display: block;
+        font-size: 13px;
+        font-weight: 800;
+        margin-bottom: 10px;
+      }
+      .field-code {
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .assumptions {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 11.5px;
+      }
+
+      /* A compact informational severity dropdown: scoring stays automatic. */
+      .severity-dropdown {
+        position: relative;
+        margin: 1px 0 13px;
+        border: 1px solid var(--line2);
+        border-radius: 11px;
+        background: var(--surface2);
+      }
+      .severity-dropdown > summary {
+        min-height: 42px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 9px 13px;
+        cursor: pointer;
+        list-style: none;
+        color: var(--text);
+        font-size: 12px;
+        user-select: none;
+      }
+      .severity-dropdown > summary::-webkit-details-marker { display: none; }
+      .severity-dropdown > summary:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+        border-radius: 11px;
+      }
+      .severity-summary-label, .severity-summary-meta {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        min-width: 0;
+      }
+      .severity-summary-label strong { font-weight: 750; }
+      .severity-summary-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        flex: none;
+        background: var(--None);
+      }
+      .severity-summary-meta { color: var(--muted); font-size: 11px; }
+      .severity-chevron {
+        width: 15px;
+        height: 15px;
+        flex: none;
+        transition: transform .18s ease;
+      }
+      .severity-dropdown[open] .severity-chevron { transform: rotate(180deg); }
+      .severity-dropdown[open] > summary { border-bottom: 1px solid var(--line2); }
+      .severity-dropdown-content {
+        padding: 12px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+      .severity-dropdown .sev-pill {
+        --ball: var(--None);
+        display: inline-flex;
+        gap: 7px;
+        padding: 7px 10px;
+        font-size: 10.5px;
+        font-weight: 700;
+        border: 1px solid var(--line2);
+        border-radius: 999px;
+        background: var(--surface);
+        color: var(--muted);
+      }
+      .severity-dropdown .sev-pill[data-sev="None"] { --ball: var(--None); }
+      .severity-dropdown .sev-pill[data-sev="Low"] { --ball: var(--Low); }
+      .severity-dropdown .sev-pill[data-sev="Medium"] { --ball: var(--Medium); }
+      .severity-dropdown .sev-pill[data-sev="High"] { --ball: var(--High); }
+      .severity-dropdown .sev-pill[data-sev="Critical"] { --ball: var(--Critical); }
+      .severity-dropdown .sev-pill.active {
+        background: var(--ball) !important;
+        border-color: var(--ball) !important;
+        color: #101820 !important;
+        box-shadow: none !important;
+      }
+      .severity-dropdown .sev-pill.active b,
+      .severity-dropdown .sev-pill.active .severity-range { color: #101820 !important; }
+      .severity-dropdown .sev-pill.active i { background: #101820 !important; }
+      .severity-dropdown .sev-pill:not(.active) .severity-range { color: var(--muted); }
+      .severity-dropdown .severity-range { font-weight: 800; }
+      @media (max-width: 430px) {
+        .severity-dropdown-content { gap: 7px; padding: 10px; }
+        .severity-dropdown .sev-pill { padding: 6px 9px; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .severity-chevron { transition: none; }
+      }
+
+      /* Final refinements: aligned cards, clean CIA names, fixed-default summary. */
+      .fields {
+        align-items: stretch;
+        grid-auto-rows: minmax(108px, auto);
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 108px;
+        gap: 10px;
+      }
+      .field label {
+        display: block;
+        line-height: 1.3;
+        margin: 0;
+        flex: 1 1 auto;
+      }
+      .field select {
+        display: block;
+        flex: none;
+        margin-top: auto;
+        min-width: 0;
+      }
+      .toolbar-foot {
+        justify-content: space-between;
+        align-items: center;
+      }
+      .fixed-defaults {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        min-width: 0;
+        max-width: 100%;
+        padding: 6px 10px;
+        border: 1px solid var(--line2);
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--accent) 7%, var(--surface2));
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 650;
+        line-height: 1.45;
+      }
+      .fixed-defaults-dot {
+        width: 8px;
+        height: 8px;
+        flex: 0 0 8px;
+        border-radius: 50%;
+        background: var(--accent);
+      }
+      #fixedDefaultsText { overflow-wrap: anywhere; }
+      #msg:empty { display: none; }
+      @media (max-height: 830px) and (min-width: 900px) {
+        .fields { grid-auto-rows: minmax(96px, auto); }
+        .field { min-height: 96px; gap: 7px; }
+      }
+      @media (max-width: 760px) {
+        .fixed-defaults { border-radius: 12px; }
+        .toolbar-foot { align-items: stretch; }
+      }
+
+      /* Consistent severity scale: subtle, individually colored outlines.
+         Only the score's current severity receives a solid fill. */
+      .severity-dropdown .sev-pill:not(.active) {
+        border-color: color-mix(in srgb, var(--ball) 48%, var(--line2)) !important;
+        background: color-mix(in srgb, var(--ball) 6%, var(--surface)) !important;
+        box-shadow: none !important;
+        filter: none !important;
+      }
+      .severity-dropdown .sev-pill:not(.active) b,
+      .severity-dropdown .sev-pill:not(.active) .severity-range {
+        color: var(--ball) !important;
+      }
+      .severity-dropdown .sev-pill.active {
+        border-color: var(--ball) !important;
+        background: var(--ball) !important;
+        color: #101820 !important;
+        box-shadow: none !important;
+        filter: none !important;
+        text-shadow: none !important;
+      }
+      .severity-dropdown .sev-pill.active b,
+      .severity-dropdown .sev-pill.active .severity-range {
+        color: #101820 !important;
+      }
+      .severity-dropdown .sev-pill.active i {
+        background: #101820 !important;
+      }
+    </style>
+<style>
+/* Secure369 layout refinement — unified assessment, compact header result */
+main.app { grid-template-rows: auto minmax(0,1fr); gap: 13px; }
+.toolbar {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  column-gap: 18px; row-gap: 13px;
+  align-items: center;
+  padding: 14px 19px 13px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 17px;
+}
+.toolbar .tool-left { min-width:0; }
+.toolbar-right { display:flex; align-items:center; gap:15px; justify-self:end; }
+.toolbar-score {
+  display: inline-flex; align-items:center; gap:11px;
+  min-width:0; min-height:45px;
+  border: 1px solid var(--line2);
+  border-radius:11px;
+  padding: 6px 13px 6px 14px;
+  background: var(--surface2);
+  color:var(--text);
+}
+.toolbar-score-label { font-size:12px; color:var(--muted); font-weight:700; white-space:nowrap; }
+.toolbar-score #score {
+  min-width: 50px; text-align: center; font-size:24px; letter-spacing:-.045em;
+  font-variant-numeric: tabular-nums; line-height:1; font-weight:800;
+}
+.toolbar-score #severity {
+  --severity-color: var(--muted);
+  font-size: 11px; font-weight:800; letter-spacing:.015em;
+  color:var(--severity-color); white-space:nowrap;
+}
+.toolbar-score[data-score-severity="None"] #severity { --severity-color: var(--None); }
+.toolbar-score[data-score-severity="Low"] #severity { --severity-color: var(--Low); }
+.toolbar-score[data-score-severity="Medium"] #severity { --severity-color: var(--Medium); }
+.toolbar-score[data-score-severity="High"] #severity { --severity-color: var(--High); }
+.toolbar-score[data-score-severity="Critical"] #severity { --severity-color: var(--Critical); }
+.toolbar-score[data-score-severity="Low"] { border-color: color-mix(in srgb,var(--Low) 46%,var(--line2)); }
+.toolbar-score[data-score-severity="Medium"] { border-color: color-mix(in srgb,var(--Medium) 46%,var(--line2)); }
+.toolbar-score[data-score-severity="High"] { border-color: color-mix(in srgb,var(--High) 46%,var(--line2)); }
+.toolbar-score[data-score-severity="Critical"] { border-color: color-mix(in srgb,var(--Critical) 55%,var(--line2)); }
+.toolbar .tool-actions { display:flex; gap:9px; }
+.toolbar-severity {
+  grid-column:1/-1;
+  display:flex; flex-wrap:wrap; align-items:center; gap:13px;
+  padding-top:12px; border-top:1px solid var(--line);
+}
+.toolbar-severity-label { font-size:12px; font-weight:800; color:var(--text); white-space:nowrap; }
+.toolbar-severity .severity-dropdown-content {
+  display:flex !important; flex-wrap:wrap; gap:8px;
+  align-items:center; padding:0; border:0; background:none;
+}
+.toolbar-severity .sev-pill {
+  display:inline-flex; align-items:center; gap:7px;
+  --ball:var(--None); margin:0; padding:6px 11px;
+  border:1px solid color-mix(in srgb,var(--ball) 54%,var(--line2));
+  border-radius:999px; font-size:11px; line-height:1.3;
+  color:var(--text); background:var(--surface2);
+  box-shadow:none !important;
+}
+.toolbar-severity .sev-pill[data-sev="Low"] { --ball:var(--Low); }
+.toolbar-severity .sev-pill[data-sev="Medium"] { --ball:var(--Medium); }
+.toolbar-severity .sev-pill[data-sev="High"] { --ball:var(--High); }
+.toolbar-severity .sev-pill[data-sev="Critical"] { --ball:var(--Critical); color:var(--text); }
+.toolbar-severity .sev-pill i { background:var(--ball); width:9px; height:9px; }
+.toolbar-severity .sev-pill .severity-range { font-weight:750; white-space:nowrap; color:inherit; }
+.toolbar-severity .sev-pill.active,
+.toolbar-severity .sev-pill[data-sev="Critical"].active {
+  background:var(--ball) !important; border-color:var(--ball) !important;
+  color:#101a24 !important; box-shadow:none !important;
+}
+.toolbar-severity .sev-pill.active b,
+.toolbar-severity .sev-pill.active .severity-range { color:#101a24 !important; }
+.toolbar-severity .sev-pill.active i { background:#101a24; }
+.toolbar-message { grid-column:1/-1; min-height:0 !important; max-width:none !important; text-align:left !important; }
+.toolbar-message:empty { display:none; }
+.workspace.single-column { display:block; min-height:0; }
+.workspace.single-column[hidden] { display:none !important; }
+#questionArea {
+  display:flex; flex-direction:column;
+  height:100%; width:100%; min-height:0;
+  overflow:auto; padding:24px 28px 21px;
+  background:var(--surface);
+  border:1px solid var(--line); border-radius:17px;
+}
+#questionArea .intro-row { margin-bottom:18px; }
+#questionArea .intro-row h1 { font-size:clamp(23px,2.3vw,31px); margin:0; letter-spacing:-.045em; }
+#questionArea .fields {
+  display:grid; grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:20px 24px; padding:0; background:transparent; border:0;
+}
+#questionArea .field, #questionArea .field.answered {
+  display:flex; flex-direction:column; gap:10px;
+  min-width:0; min-height:0; padding:0;
+  background:transparent; border:0; border-radius:0;
+}
+#questionArea .field label {
+  margin:0; line-height:1.35; font-size:14px;
+  font-weight:750; display:block; min-height:21px;
+}
+#questionArea .field .field-code { font-weight:600; color:var(--muted); }
+#questionArea .field select {
+  height:45px; padding:0 13px; font-size:13px;
+  font-weight:600; border-radius:10px;
+  border:1px solid var(--line2); background:var(--surface2);
+}
+#questionArea .field select:focus-visible { border-color:var(--accent); }
+.assessment-footer {
+  margin-top:auto; padding-top:24px;
+  display:flex; flex-direction:column; align-items:flex-start; gap:13px;
+}
+.assessment-footer .vectors { width:min(720px,100%); gap:0; }
+.assessment-footer .vector-item {
+  background:var(--surface2); border:1px solid var(--line2);
+  border-radius:13px; padding:13px 15px;
+}
+.assessment-footer .vector-content { margin-top:10px; }
+.assessment-footer .vector-content code { overflow-wrap:anywhere; word-break:break-word; }
+.assessment-footer .fixed-defaults {
+  max-width: min(900px,100%);
+  width:max-content; border-radius:12px; padding:8px 11px;
+}
+.assessment-footer .how { border:0; padding:0; margin:2px 0 0; width:min(720px,100%); }
+.screenreader-only { position:absolute !important; width:1px !important; height:1px !important; padding:0 !important; margin:-1px !important; overflow:hidden !important; clip:rect(0,0,0,0) !important; white-space:nowrap !important; border:0 !important; }
+@media (max-width:1080px) {
+  #questionArea .fields { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .toolbar { grid-template-columns:1fr auto !important; }
+  .toolbar-right { gap:9px; }
+}
+@media (max-width:760px) {
+  main.app { display:flex; flex-direction:column; overflow:visible; }
+  .toolbar { display:flex !important; flex-wrap:wrap; align-items:flex-start; padding:12px; gap:12px; }
+  .toolbar .tool-left { flex:1 1 auto; }
+  .toolbar-right { flex:1 1 100%; justify-content:space-between; width:100%; }
+  .toolbar-severity { flex:1 1 100%; width:100%; gap:9px; }
+  .toolbar-severity .severity-dropdown-content { gap:6px; }
+  .toolbar-severity .sev-pill { font-size:10px; padding:6px 9px; }
+  #questionArea { height:auto; overflow:visible; padding:19px 16px 18px; }
+  #questionArea .fields { grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px 13px; }
+  #questionArea .field label { font-size:12px; }
+  .assessment-footer { margin-top:20px; }
+}
+@media (max-width:480px) {
+  .toolbar-score #score { font-size:23px; min-width:43px; }
+  .toolbar-score { gap:7px; padding:7px 9px; }
+  .toolbar-score-label { font-size:11px; }
+  .toolbar-score #severity { font-size:10px; }
+  #questionArea .fields { grid-template-columns:1fr; gap:15px; }
+  #questionArea .field select { height:43px; }
+  .assessment-footer .fixed-defaults { width:100%; }
+}
+
+/* Keep assessment labels and dropdowns tightly paired on every viewport. */
+#questionArea .fields { grid-auto-rows: auto !important; }
+#questionArea .field { justify-content: flex-start !important; }
+#questionArea .field label { flex: none !important; }
+#questionArea .field select { margin-top: 0 !important; flex: none !important; }
+@media (max-width:760px) {
+  .toolbar .tool-actions { width:auto !important; flex: 0 0 auto !important; display:flex !important; }
+  .toolbar .tool-actions .btn { flex: 0 0 auto !important; padding:9px 12px; }
+  .toolbar-right { flex-wrap:nowrap; }
+}
+</style><style>
+/* Secure369 refinement: a compact single-screen assessment with a prominent score. */
+.site-header {
+  height: 54px; min-height: 54px;
+  padding-inline: clamp(15px,2vw,30px);
+}
+.site-header .brand { gap: 9px; }
+.site-header .brand .mk { width:39px; height:39px; }
+.site-header .brand b { font-size:17px; }
+main.app {
+  padding: 10px clamp(12px,1.6vw,24px) 12px;
+  gap: 10px;
+  grid-template-rows: auto auto;
+  align-content: start;
+}
+.toolbar {
+  border-radius: 15px;
+  padding: 10px 14px 11px;
+  row-gap: 8px;
+  column-gap: 12px;
+}
+.toolbar .view-tabs { padding: 3px; border-radius: 11px; }
+.toolbar .view-tab {
+  min-height: 34px; padding: 7px 12px; font-size:12px;
+  border-radius: 8px;
+}
+.toolbar-right { gap: 12px; }
+.toolbar .tool-actions .btn {
+  min-height: 35px; padding: 8px 13px; border-radius:10px;
+  font-size:12px; font-weight:750;
+}
+.toolbar .tool-actions .ui-icon { width:16px; height:16px; }
+.toolbar-score {
+  position: relative;
+  display:flex; align-items:center; justify-content:space-between;
+  gap: 14px;
+  min-width: 221px; min-height: 67px;
+  padding: 8px 15px 8px 17px;
+  border-radius: 13px;
+  border: 1px solid color-mix(in srgb,var(--accent) 55%, var(--line2));
+  border-left: 3px solid var(--accent);
+  background: color-mix(in srgb,var(--accent) 7%,var(--surface2));
+  box-shadow:none;
+}
+.score-meta { display:flex; flex-direction:column; align-items:flex-start; gap:5px; }
+.toolbar-score-label {
+  font-size:11px; letter-spacing:.025em; font-weight:750; color:var(--muted);
+}
+.toolbar-score #score {
+  min-width:87px; padding:0;
+  color:var(--text); font-size:43px; line-height:1;
+  font-weight:850; letter-spacing:-.065em; text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+.toolbar-score #severity {
+  font-size:12px; line-height:1.1; font-weight:800;
+  text-transform:uppercase; letter-spacing:.045em;
+}
+.toolbar-score[data-score-severity="None"] { border-left-color:var(--None); }
+.toolbar-score[data-score-severity="Low"] { border-left-color:var(--Low); }
+.toolbar-score[data-score-severity="Medium"] { border-left-color:var(--Medium); }
+.toolbar-score[data-score-severity="High"] { border-left-color:var(--High); }
+.toolbar-score[data-score-severity="Critical"] { border-left-color:var(--Critical); }
+.toolbar-severity { gap:9px; padding-top:9px; }
+.toolbar-severity-label { font-size:11px; }
+.toolbar-severity .severity-dropdown-content { gap:6px; }
+.toolbar-severity .sev-pill {
+  font-size:10.5px; gap:5px; padding:5px 9px;
+  white-space:nowrap; line-height:1.25;
+}
+.toolbar-severity .sev-pill i {width:8px;height:8px;}
+.workspace.single-column { min-height:0; height:auto; }
+#questionArea {
+  height:auto; min-height:0;
+  max-height:calc(100dvh - 204px);
+  padding: 17px 20px 17px;
+  overflow:auto;
+  border-radius:15px;
+}
+#questionArea .intro-row { margin-bottom:13px; }
+#questionArea .intro-row h1 {
+  font-size:clamp(20px,1.8vw,25px);
+  line-height:1.15; letter-spacing:-.035em;
+}
+#questionArea .fields {
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap: 13px 17px;
+}
+#questionArea .field, #questionArea .field.answered { gap:6px; }
+#questionArea .field label {
+  font-size:12px; min-height:0; font-weight:750;
+  line-height:1.3;
+}
+#questionArea .field select {
+  height:37px; min-height:37px;
+  padding:0 11px; font-size:12px; border-radius:8px;
+}
+.assessment-footer {
+  margin-top:17px;
+  padding-top:14px;
+  border-top:1px solid var(--line);
+  gap:9px;
+}
+.assessment-footer .vectors { width:min(720px,100%); }
+.assessment-footer .vector-item {
+  border-radius:11px;
+  padding:10px 12px;
+}
+.assessment-footer .vector-label { font-size:11px; }
+.assessment-footer .vector-content {
+  margin-top:7px; min-height:40px; padding:8px 10px;
+}
+.assessment-footer .vector-content code { font-size:11.5px; line-height:1.5; }
+.assessment-footer .fixed-defaults {
+  font-size:10.5px; padding:6px 9px; line-height:1.35;
+}
+.assessment-footer .how { font-size:11px; margin:0; }
+@media (max-width:1080px) and (min-width:761px) {
+  #questionArea .fields {grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px;}
+  .toolbar-score { min-width:192px; }
+  .toolbar-score #score {font-size:39px; min-width:76px;}
+  #questionArea { max-height:calc(100dvh - 210px); }
+}
+@media (max-width:760px) {
+  .site-header {height:55px;min-height:55px;}
+  main.app {display:flex;flex-direction:column;padding:9px 10px 20px;gap:9px;}
+  .toolbar {padding:10px; gap:9px;}
+  .toolbar-right {gap:8px;}
+  .toolbar-score {min-width:0;min-height:60px;flex:1 1 auto;padding:8px 11px;}
+  .toolbar-score #score {font-size:35px;min-width:65px;}
+  .toolbar .tool-actions .btn {min-height:34px;padding:8px 10px;}
+  .toolbar-severity {gap:8px;}
+  .toolbar-severity .severity-dropdown-content {gap:6px;}
+  .toolbar-severity .sev-pill {padding:5px 8px;font-size:10px;}
+  #questionArea {max-height:none;height:auto;overflow:visible;padding:16px 13px;}
+  #questionArea .intro-row {margin-bottom:13px;}
+  #questionArea .fields {grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+  #questionArea .field label {font-size:12px;}
+  .assessment-footer {margin-top:15px;}
+}
+@media (max-width:480px) {
+  .toolbar-score {gap:6px;min-height:57px;padding:7px 9px;}
+  .toolbar-score #score {font-size:32px;min-width:53px;}
+  .toolbar-score-label {font-size:10px;}
+  .toolbar-score #severity {font-size:10px;}
+  #questionArea .fields {grid-template-columns:1fr;gap:11px;}
+  #questionArea .field select {height:38px;min-height:38px;}
+}
+@media (max-height:700px) and (min-width:761px) {
+  #questionArea {max-height:calc(100dvh - 191px);}
+}
+</style>
+<style id="s369-one-panel-layout">
+/* One cohesive calculator surface — no separately framed toolbar or assessment panel. */
+main.app {
+  display: block !important;
+  grid-template-rows: none !important;
+  padding: 10px clamp(10px,1.6vw,24px) 16px !important;
+  min-height: 0;
+  overflow: hidden;
+}
+.unified-calculator {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line2) transparent;
+  padding: clamp(15px,1.6vw,23px) clamp(16px,1.8vw,26px) 17px;
+  border-radius: 17px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.unified-calculator .toolbar {
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--line) !important;
+  border-radius: 0 !important;
+  padding: 0 0 14px !important;
+  box-shadow: none !important;
+  flex: 0 0 auto;
+}
+.unified-calculator .workspace.single-column {
+  display: block;
+  min-height: 0;
+  height: auto;
+  background: transparent;
+  margin: 0;
+  padding: 0;
+}
+.unified-calculator .workspace.single-column[hidden] { display:none !important; }
+.unified-calculator #questionArea {
+  display: block;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+  padding: 20px 0 2px !important;
+}
+.unified-calculator #questionArea .intro-row { margin-bottom: 16px; }
+.unified-calculator #questionArea .fields { gap: 16px 22px; }
+.unified-calculator .assessment-footer {
+  margin-top: 22px;
+  padding-top: 17px;
+  border-top: 1px solid var(--line);
+  gap: 12px;
+}
+.unified-calculator .assessment-footer .vectors { width: min(780px,100%); }
+.unified-calculator .assessment-footer .vector-item {
+  border: 0 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
+.unified-calculator .assessment-footer .vector-content {
+  border: 1px solid var(--line2);
+  border-radius: 9px;
+  background: var(--surface2);
+  padding: 9px 12px;
+}
+.unified-calculator #loadPanel {
+  margin-top: 0;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 23px 0 8px !important;
+  overflow: visible;
+}
+.unified-calculator #loadPanel[hidden] { display:none !important; }
+.unified-calculator .toolbar-severity { border-top-color: var(--line); }
+@media (max-width:760px) {
+  body { overflow:auto !important; height:auto !important; min-height:100dvh; }
+  main.app { display:block !important; flex:none !important; height:auto !important; overflow:visible !important; padding:9px 10px 20px !important; }
+  .unified-calculator { max-height:none; overflow:visible; padding:13px 13px 18px; }
+  .unified-calculator .toolbar { padding:0 0 13px !important; }
+  .unified-calculator #questionArea { padding:17px 0 1px !important; }
+  .unified-calculator #questionArea .fields {gap:12px 13px;}
+  .unified-calculator .assessment-footer { margin-top:19px; }
+}
+@media (max-width:480px) {
+  .unified-calculator { padding:12px 11px 16px; border-radius:14px; }
+  .unified-calculator #questionArea .fields {gap:12px;}
+  .unified-calculator .assessment-footer .fixed-defaults { width:100%; }
+}
+</style>
+
+<style id="s369-toolbar-order-fix">
+/* The numerical score uses the same color as its calculated severity. */
+.unified-calculator .toolbar-score { --score-color: var(--muted); }
+.unified-calculator .toolbar-score[data-score-severity="None"] { --score-color: var(--None); }
+.unified-calculator .toolbar-score[data-score-severity="Low"] { --score-color: var(--Low); }
+.unified-calculator .toolbar-score[data-score-severity="Medium"] { --score-color: var(--Medium); }
+.unified-calculator .toolbar-score[data-score-severity="High"] { --score-color: var(--High); }
+.unified-calculator .toolbar-score[data-score-severity="Critical"] { --score-color: var(--Critical); }
+.unified-calculator .toolbar-score #score { color: var(--score-color); }
+
+/* Keep Calculator, Load vector, Reset, and Base score in reading order. */
+.unified-calculator .toolbar {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  column-gap: 11px !important;
+  row-gap: 10px !important;
+}
+.unified-calculator .toolbar .tool-left { flex: 0 0 auto !important; min-width: 0; }
+.unified-calculator .toolbar .toolbar-right {
+  display: flex !important;
+  flex: 0 1 auto !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  justify-self: start !important;
+  gap: 11px !important;
+  width: auto !important;
+  flex-wrap: nowrap !important;
+}
+.unified-calculator .toolbar .tool-actions { flex: 0 0 auto !important; }
+.unified-calculator .toolbar .toolbar-score { flex: 0 0 auto !important; }
+.unified-calculator .toolbar .toolbar-severity {
+  flex: 0 0 100% !important;
+  width: 100%;
+  order: 3;
+}
+.unified-calculator .toolbar .toolbar-message { flex: 0 0 100%; order: 4; }
+@media (max-width: 760px) {
+  .unified-calculator .toolbar .tool-left { flex: 0 0 100% !important; }
+  .unified-calculator .toolbar .toolbar-right {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    flex-wrap: wrap !important;
+  }
+  .unified-calculator .toolbar .toolbar-score { flex: 1 1 190px !important; }
+}
+</style>
+<style>
+  /* Documentation link inside the existing scoring-explanation panel. */
+  .how .cvss-doc-reference { margin: 9px 0 6px; }
+  .how .cvss-doc-reference a {
+    display: inline-flex;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent, #9edfc0);
+    text-decoration: none;
+    text-underline-offset: 3px;
+  }
+  .how .cvss-doc-reference a:hover,
+  .how .cvss-doc-reference a:focus-visible { text-decoration: underline; }
+</style>
+<style>
+  html {
+    height: auto;
+    scroll-behavior: smooth;
+  }
+  body {
+    height: auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    font-family: var(--font);
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,0.012) 0,
+      rgba(255,255,255,0.012) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    mix-blend-mode: overlay;
+  }
+  .tmux-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid var(--line);
+    background: color-mix(in srgb, var(--bg) 92%, transparent);
+    backdrop-filter: blur(6px);
+  }
+  .tmux-inner {
+    max-width: 1028px;
+    min-width: 0;
+    height: 46px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    overflow-x: auto;
+  }
+  .tmux-session {
+    flex: 0 0 auto;
+    padding-right: 14px;
+    margin-right: 10px;
+    border-right: 1px solid var(--line);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .tmux-tab {
+    flex: 0 0 auto;
+    padding: 6px 10px;
+    border-radius: 3px;
+    color: var(--muted);
+    font-size: 12px;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: color .15s, background .15s;
+  }
+  .tmux-tab:hover {
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    text-decoration: none;
+  }
+  .tmux-tab.is-active {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .tmux-status {
+    flex: 0 0 auto;
+    margin-left: auto;
+    padding-left: 12px;
+    color: var(--muted);
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .tmux-theme {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid var(--line2);
+    border-radius: 3px;
+    background: var(--surface);
+    color: var(--accent);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1;
+  }
+  .tmux-theme:hover {
+    border-color: var(--accent);
+    background: var(--surface2);
+  }
+  .app {
+    display: block !important;
+    flex: 1 0 auto;
+    width: 100%;
+    max-width: 1028px;
+    min-height: calc(100vh - 46px);
+    margin: 0 auto;
+    padding: 40px 24px 64px;
+    overflow: visible;
+  }
+  .tool-page-heading {
+    margin: 0 0 16px;
+  }
+  .tool-page-index {
+    display: block;
+    margin-bottom: 9px;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+  .tool-page-prompt {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 13px;
+  }
+  .tool-page-prompt span { color: var(--accent); }
+  .tool-page-prompt strong { color: var(--text); }
+  .unified-calculator {
+    max-height: none;
+    overflow: visible;
+    padding: 22px 24px 24px;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    background: var(--surface);
+    box-shadow: none;
+  }
+  .unified-calculator .toolbar {
+    border-bottom-color: var(--line) !important;
+  }
+  .view-tabs, .view-tab, .toolbar-score, .sev-pill, .vector-item,
+  .fixed-defaults, .field, .field select, .tool-input input, .btn {
+    border-radius: 3px !important;
+    font-family: var(--font);
+  }
+  .btn {
+    border: 1px solid var(--line2);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 700;
+    transition: border-color .15s, color .15s, background .15s;
+  }
+  .btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .btn.primary {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #06110a;
+  }
+  .btn.primary:hover:not(:disabled) {
+    border-color: #4bffa0;
+    background: #4bffa0;
+    color: #06110a;
+  }
+  .view-tab.active {
+    background: var(--accent);
+    color: #06110a;
+  }
+  .field {
+    border-color: var(--line);
+    background: var(--surface2);
+  }
+  .field select {
+    border-color: var(--line2);
+    background: var(--bg);
+    color: var(--text);
+  }
+  .field select:focus-visible, .tool-input input:focus-visible,
+  .tmux-theme:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .assessment-footer {
+    border-top-color: var(--line);
+  }
+  .vector-item {
+    border-color: var(--line);
+    background: var(--surface2);
+  }
+  .vector-content {
+    border-color: var(--line2);
+    background: var(--bg);
+  }
+  .fixed-defaults {
+    border-color: var(--line);
+    background: var(--surface2);
+    color: var(--muted);
+  }
+  a { color: var(--accent); }
+  a:focus-visible, button:focus-visible, select:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+  ::selection { background: var(--green-dim, #1f8f52); color: #06110a; }
+  @media (max-width: 760px) {
+    .tmux-inner { padding: 0 14px; }
+    .app { padding: 30px 14px 44px; }
+    .unified-calculator { padding: 17px 15px 19px; }
+  }
+  @media (max-width: 480px) {
+    .app { padding: 25px 10px 36px; }
+    .unified-calculator { padding: 14px 11px 16px; }
+  }
+</style>
+</head>
+<body>
+<nav aria-label="Main navigation" class="tmux-bar">
+  <div class="tmux-inner">
+    <span class="tmux-session">rahul@kali:~</span>
+    <a class="tmux-tab" href="../index.html#hero">whoami</a>
+    <a class="tmux-tab" href="../index.html#certs">certs</a>
+    <a class="tmux-tab" href="../index.html#skills">skills</a>
+    <a class="tmux-tab" href="../index.html#experience">experience</a>
+    <a class="tmux-tab" href="../index.html#projects">projects</a>
+    <a aria-current="page" class="tmux-tab is-active" href="cvss4.html">tools</a>
+    <a class="tmux-tab" href="../blog.html">walkthroughs</a>
+    <a class="tmux-tab" href="../index.html#contact">contact</a>
+    <span class="tmux-status">CVSS v4.0</span>
+    <button aria-label="Toggle light or dark theme" class="tmux-theme" id="tg" type="button">☾</button>
+  </div>
+</nav>
+<main class="app">
+<div class="tool-page-heading">
+  <span class="tool-page-index">tool / 01</span>
+  <div class="tool-page-prompt"><span>rahul@kali:~$</span><strong>cvss4 --assess</strong></div>
+</div>
+<div class="unified-calculator" aria-label="Rahul's CVSS v4.0 calculator">
+<section aria-label="Views and actions" class="toolbar">
+<div class="tool-left">
+<div aria-label="Views" class="view-tabs" role="group">
+<button aria-pressed="true" class="view-tab active" id="tabCalc" type="button">
+              Calculator
+            </button>
+<button aria-pressed="false" class="view-tab" id="tabLoad" type="button">
+              Load vector
+            </button>
+</div>
+</div>
+<div class="toolbar-right"><div aria-label="Calculator actions" class="tool-actions" role="group">
+<button class="btn ghost" id="rs" type="button">
+<svg aria-hidden="true" class="ui-icon" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="18">
+<path d="M3 11a9 9 0 1 1 2.6 6.4"></path>
+<path d="M3 4v7h7"></path></svg><span>Reset</span>
+</button>
+</div><div aria-label="Live CVSS v4.0 Base score" class="toolbar-score" data-score-severity="Pending" id="toolbarScore"><div class="score-meta"><span class="toolbar-score-label">CVSS Base score</span><small id="severity">Not rated</small></div><b id="score">—</b><p aria-live="polite" class="screenreader-only" id="status" role="status">
+                Answer every question to see your score.
+              </p></div></div><div aria-label="CVSS v4.0 severity scale" class="toolbar-severity" id="severityDropdown"><span class="toolbar-severity-label">Severity scale</span><div aria-label="CVSS severity score ranges" class="severity-dropdown-content">
+<span class="sev-pill" data-sev="None"><i aria-hidden="true"></i><b>None</b><span class="severity-range">s = 0.0</span></span>
+<span class="sev-pill" data-sev="Low"><i aria-hidden="true"></i><b>Low</b><span class="severity-range">0.0 &lt; s &lt; 4.0</span></span>
+<span class="sev-pill" data-sev="Medium"><i aria-hidden="true"></i><b>Medium</b><span class="severity-range">4.0 ≤ s &lt; 7.0</span></span>
+<span class="sev-pill" data-sev="High"><i aria-hidden="true"></i><b>High</b><span class="severity-range">7.0 ≤ s &lt; 9.0</span></span>
+<span class="sev-pill" data-sev="Critical"><i aria-hidden="true"></i><b>Critical</b><span class="severity-range">9.0 ≤ s ≤ 10.0</span></span>
+</div></div><span aria-live="polite" class="toolbar-message" id="msg" role="status"></span></section>
+<section aria-label="Load a vector" class="input-panel load-panel" hidden="" id="loadPanel">
+<span class="eyebrow">Load a vector</span>
+<div class="tool-left">
+<div class="tool-input">
+<input aria-label="Paste your CVSS 4.0 vector" autocomplete="off" id="vin" placeholder="Paste CVSS:4.0/…" spellcheck="false"/>
+</div>
+<button class="btn primary" id="ld" type="button">
+<svg aria-hidden="true" class="ui-icon" fill="none" height="18" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="18">
+<path d="m12 3 0 12m0 0-4-4m4 4 4-4"></path>
+<path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"></path></svg><span>Load vector</span>
+</button>
+</div>
+<p class="load-hint">
+          Paste a CVSS:4.0 Base vector, for example one copied from the FIRST
+          calculator. Its answers and settings will be applied.
+        </p>
+</section>
+<div class="workspace single-column" id="workspace">
+<section aria-labelledby="calculator-heading" class="input-panel" id="questionArea">
+<div class="intro-row">
+<div>
+<h1 id="calculator-heading">Vulnerability assessment</h1>
+</div>
+</div>
+<div class="fields" id="fields"></div>
+<div class="assessment-footer"><div class="vectors">
+<div class="vector-item s369-vector" id="vectorCard">
+<div class="vector-label">
+<strong>CVSS v4.0 vector</strong><span aria-live="polite" id="vectorCopyStatus" role="status">CVSS v4.0 format</span>
+</div>
+<div class="vector-content">
+<code class="placeholder" id="customVector">Answer every question to generate a vector</code><button aria-label="Copy vector" class="vector-copy" disabled="" id="copyInline" title="Copy vector" type="button">
+<svg aria-hidden="true" fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="17">
+<rect height="12" rx="2" width="12" x="8" y="8"></rect>
+<path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path>
+</svg>
+</button>
+</div>
+</div>
+</div><div aria-label="Default vector settings" class="fixed-defaults" id="fixedDefaults">
+<span aria-hidden="true" class="fixed-defaults-dot"></span>
+<span id="fixedDefaultsText">Fixed defaults: Network (AV:N) · No user action (UI:N) · No other-system impact (SC:N, SI:N, SA:N)</span>
+</div><details class="how" id="details">
+<summary>How is this score calculated?</summary>
+<p>
+              Your answers become CVSS v4.0 Base metrics and are scored with
+              FIRST's method (a lookup table plus fine-tuning). Threat,
+              Environmental and Supplemental metrics are not included.
+            </p>
+<p class="cvss-doc-reference">
+  <a href="https://www.first.org/cvss/v4.0/specification-document" target="_blank" rel="noopener noreferrer">Read the official CVSS v4.0 specification ↗</a>
+</p>
+<p class="assumptions" id="assumptions"></p>
+</details></div></section>
+</div>
+</div>
+</main>
+<script>
+      "use strict";
+
+      /* ==========================================================================
+   S369 Calculator
+   --------------------------------------------------------------------------
+   1. CVSS v4.0 scoring engine (Base metrics only)
+   2. Questions, presets and the vector
+   3. Screen rendering
+   4. Actions (answer, import, copy, report) and start-up
+   ========================================================================== */
+
+      const $ = (id) => document.getElementById(id);
+
+      /* ==========================================================================
+   1. CVSS v4.0 SCORING ENGINE
+   --------------------------------------------------------------------------
+   How a v4.0 Base score is produced:
+   1. The metrics are sorted into six groups called equivalence classes
+      (EQ1 to EQ6). Each class gets a level; level 0 is the most severe.
+   2. The six levels form a key such as "100200". FIRST's table gives a
+      score for every key.
+   3. If the vector is milder than the worst case inside its groups, a small
+      amount is subtracted (the "fine-tune" step).
+   Only Base metrics are used, so Threat and Environmental metrics keep their
+   default worst-case values (E:A, CR:H, IR:H, AR:H).
+   ========================================================================== */
+
+      /** FIRST's score for each six-digit key (EQ1 to EQ6 levels). */
+      // prettier-ignore
+      const MACROVECTOR_SCORES = {
+  "100000": 9.8, "100001": 9.5, "100010": 9.4, "100011": 8.7, "100020": 9.1, "100021": 8.1,
+  "100100": 9.4, "100101": 8.9, "100110": 8.6, "100111": 7.4, "100120": 7.7, "100121": 6.4,
+  "100200": 8.7, "100201": 7.5, "100210": 7.4, "100211": 6.3, "100220": 6.3, "100221": 4.9,
+  "101000": 9.4, "101001": 8.9, "101010": 8.8, "101011": 7.7, "101020": 7.6, "101021": 6.7,
+  "101100": 8.6, "101101": 7.6, "101110": 7.4, "101111": 5.8, "101120": 5.9, "101121": 5,
+  "101200": 7.2, "101201": 5.7, "101210": 5.7, "101211": 5.2, "101220": 5.2, "101221": 2.5,
+  "102001": 8.3, "102011": 7, "102021": 5.4, "102101": 6.5, "102111": 5.8, "102121": 2.6,
+  "102201": 5.3, "102211": 2.1, "102221": 1.3, "110000": 9.5, "110001": 9, "110010": 8.8,
+  "110011": 7.6, "110020": 7.6, "110021": 7, "110100": 9, "110101": 7.7, "110110": 7.5,
+  "110111": 6.2, "110120": 6.1, "110121": 5.3, "110200": 7.7, "110201": 6.6, "110210": 6.8,
+  "110211": 5.9, "110220": 5.2, "110221": 3, "111000": 8.9, "111001": 7.8, "111010": 7.6,
+  "111011": 6.7, "111020": 6.2, "111021": 5.8, "111100": 7.4, "111101": 5.9, "111110": 5.7,
+  "111111": 5.7, "111120": 4.7, "111121": 2.3, "111200": 6.1, "111201": 5.2, "111210": 5.7,
+  "111211": 2.9, "111220": 2.4, "111221": 1.6, "112001": 7.1, "112011": 5.9, "112021": 3,
+  "112101": 5.8, "112111": 2.6, "112121": 1.5, "112201": 2.3, "112211": 1.3, "112221": 0.6,
+  "200000": 9.3, "200001": 8.7, "200010": 8.6, "200011": 7.2, "200020": 7.5, "200021": 5.8,
+  "200100": 8.6, "200101": 7.4, "200110": 7.4, "200111": 6.1, "200120": 5.6, "200121": 3.4,
+  "200200": 7, "200201": 5.4, "200210": 5.2, "200211": 4, "200220": 4, "200221": 2.2,
+  "201000": 8.5, "201001": 7.5, "201010": 7.4, "201011": 5.5, "201020": 6.2, "201021": 5.1,
+  "201100": 7.2, "201101": 5.7, "201110": 5.5, "201111": 4.1, "201120": 4.6, "201121": 1.9,
+  "201200": 5.3, "201201": 3.6, "201210": 3.4, "201211": 1.9, "201220": 1.9, "201221": 0.8,
+  "202001": 6.4, "202011": 5.1, "202021": 2, "202101": 4.7, "202111": 2.1, "202121": 1.1,
+  "202201": 2.4, "202211": 0.9, "202221": 0.4, "210000": 8.8, "210001": 7.5, "210010": 7.3,
+  "210011": 5.3, "210020": 6, "210021": 5, "210100": 7.3, "210101": 5.5, "210110": 5.9,
+  "210111": 4, "210120": 4.1, "210121": 2, "210200": 5.4, "210201": 4.3, "210210": 4.5,
+  "210211": 2.2, "210220": 2, "210221": 1.1, "211000": 7.5, "211001": 5.5, "211010": 5.8,
+  "211011": 4.5, "211020": 4, "211021": 2.1, "211100": 6.1, "211101": 5.1, "211110": 4.8,
+  "211111": 1.8, "211120": 2, "211121": 0.9, "211200": 4.6, "211201": 1.8, "211210": 1.7,
+  "211211": 0.7, "211220": 0.8, "211221": 0.2, "212001": 5.3, "212011": 2.4, "212021": 1.4,
+  "212101": 2.4, "212111": 1.2, "212121": 0.5, "212201": 1, "212211": 0.3, "212221": 0.1,
+  "000000": 10, "000001": 9.9, "000010": 9.8, "000011": 9.5, "000020": 9.5, "000021": 9.2,
+  "000100": 10, "000101": 9.6, "000110": 9.3, "000111": 8.7, "000120": 9.1, "000121": 8.1,
+  "000200": 9.3, "000201": 9, "000210": 8.9, "000211": 8, "000220": 8.1, "000221": 6.8,
+  "001000": 9.8, "001001": 9.5, "001010": 9.5, "001011": 9.2, "001020": 9, "001021": 8.4,
+  "001100": 9.3, "001101": 9.2, "001110": 8.9, "001111": 8.1, "001120": 8.1, "001121": 6.5,
+  "001200": 8.8, "001201": 8, "001210": 7.8, "001211": 7, "001220": 6.9, "001221": 4.8,
+  "002001": 9.2, "002011": 8.2, "002021": 7.2, "002101": 7.9, "002111": 6.9, "002121": 5,
+  "002201": 6.9, "002211": 5.5, "002221": 2.7, "010000": 9.9, "010001": 9.7, "010010": 9.5,
+  "010011": 9.2, "010020": 9.2, "010021": 8.5, "010100": 9.5, "010101": 9.1, "010110": 9,
+  "010111": 8.3, "010120": 8.4, "010121": 7.1, "010200": 9.2, "010201": 8.1, "010210": 8.2,
+  "010211": 7.1, "010220": 7.2, "010221": 5.3, "011000": 9.5, "011001": 9.3, "011010": 9.2,
+  "011011": 8.5, "011020": 8.5, "011021": 7.3, "011100": 9.2, "011101": 8.2, "011110": 8,
+  "011111": 7.2, "011120": 7, "011121": 5.9, "011200": 8.4, "011201": 7, "011210": 7.1,
+  "011211": 5.2, "011220": 5, "011221": 3, "012001": 8.6, "012011": 7.5, "012021": 5.2,
+  "012101": 7.1, "012111": 5.2, "012121": 2.9, "012201": 6.3, "012211": 2.9, "012221": 1.7,
+};
+
+      /** Worst-case vectors of each group; distances are measured from these. */
+      // prettier-ignore
+      const WORST_VECTORS = {
+  eq1: {
+    0: ["AV:N/PR:N/UI:N/"],
+    1: ["AV:A/PR:N/UI:N/", "AV:N/PR:L/UI:N/", "AV:N/PR:N/UI:P/"],
+    2: ["AV:P/PR:N/UI:N/", "AV:A/PR:L/UI:P/"],
+  },
+  eq2: {
+    0: ["AC:L/AT:N/"],
+    1: ["AC:H/AT:N/", "AC:L/AT:P/"],
+  },
+  eq3eq6: {
+    0: {
+      0: ["VC:H/VI:H/VA:H/CR:H/IR:H/AR:H/"],
+      1: ["VC:H/VI:H/VA:L/CR:M/IR:M/AR:H/", "VC:H/VI:H/VA:H/CR:M/IR:M/AR:M/"],
+    },
+    1: {
+      0: ["VC:L/VI:H/VA:H/CR:H/IR:H/AR:H/", "VC:H/VI:L/VA:H/CR:H/IR:H/AR:H/"],
+      1: ["VC:L/VI:H/VA:L/CR:H/IR:M/AR:H/", "VC:L/VI:H/VA:H/CR:H/IR:M/AR:M/", "VC:H/VI:L/VA:H/CR:M/IR:H/AR:M/", "VC:H/VI:L/VA:L/CR:M/IR:H/AR:H/", "VC:L/VI:L/VA:H/CR:H/IR:H/AR:M/"],
+    },
+    2: {
+      1: ["VC:L/VI:L/VA:L/CR:H/IR:H/AR:H/"],
+    },
+  },  // [EQ3 level][EQ6 level]
+  eq4: {
+    0: ["SC:H/SI:S/SA:S/"],
+    1: ["SC:H/SI:H/SA:H/"],
+    2: ["SC:L/SI:L/SA:L/"],
+  },
+};
+
+      /** Largest distance (in 0.1 steps) a vector can sit from the worst case of a group. */
+      // prettier-ignore
+      const MAX_SEVERITY = {
+  eq1: {0: 1, 1: 4, 2: 5},
+  eq2: {0: 1, 1: 2},
+  eq3eq6: {0: {0: 7, 1: 6}, 1: {0: 8, 1: 8}, 2: {1: 10}},
+  eq4: {0: 6, 1: 5, 2: 4},
+};
+
+      /** Position of each metric value; 0 is the most severe. */
+      // prettier-ignore
+      const LEVEL_VALUES = {
+  AV: {N: 0, A: 0.1, L: 0.2, P: 0.3},
+  PR: {N: 0, L: 0.1, H: 0.2},
+  UI: {N: 0, P: 0.1, A: 0.2},
+  AC: {L: 0, H: 0.1},
+  AT: {N: 0, P: 0.1},
+  VC: {H: 0, L: 0.1, N: 0.2},
+  VI: {H: 0, L: 0.1, N: 0.2},
+  VA: {H: 0, L: 0.1, N: 0.2},
+  SC: {H: 0.1, L: 0.2, N: 0.3},
+  SI: {S: 0, H: 0.1, L: 0.2, N: 0.3},
+  SA: {S: 0, H: 0.1, L: 0.2, N: 0.3},
+  CR: {H: 0, M: 0.1, L: 0.2},
+  IR: {H: 0, M: 0.1, L: 0.2},
+  AR: {H: 0, M: 0.1, L: 0.2},
+};
+
+      const IMPACT_METRICS = ["VC", "VI", "VA", "SC", "SI", "SA"];
+      const DEFAULT_METRICS = { E: "A", CR: "H", IR: "H", AR: "H" };
+      const SEVERITY_STEP = 0.1;
+
+      /** Step 1: sort the metrics into the six equivalence classes. */
+      function equivalenceClasses(m) {
+        const anyHigh = (...keys) => keys.some((k) => m[k] === "H");
+        const allHigh = m.VC === "H" && m.VI === "H";
+
+        // EQ1: how reachable the attack is (AV, PR, UI)
+        let eq1 = 2;
+        if (m.AV === "N" && m.PR === "N" && m.UI === "N") eq1 = 0;
+        else if ((m.AV === "N" || m.PR === "N" || m.UI === "N") && m.AV !== "P")
+          eq1 = 1;
+
+        // EQ2: how hard the attack is (AC, AT)
+        const eq2 = m.AC === "L" && m.AT === "N" ? 0 : 1;
+
+        // EQ3: impact on the vulnerable system (VC, VI, VA)
+        const eq3 = allHigh ? 0 : anyHigh("VC", "VI", "VA") ? 1 : 2;
+
+        // EQ4: impact on other systems (SC, SI, SA). Level 0 needs the Safety
+        // metric, which is not part of Base.
+        const eq4 = anyHigh("SC", "SI", "SA") ? 1 : 2;
+
+        // EQ5: exploit maturity
+        const eq5 = { A: 0, P: 1, U: 2 }[m.E];
+
+        // EQ6: impact weighted by security requirements
+        const eq6 =
+          (m.CR === "H" && m.VC === "H") ||
+          (m.IR === "H" && m.VI === "H") ||
+          (m.AR === "H" && m.VA === "H")
+            ? 0
+            : 1;
+
+        return { eq1, eq2, eq3, eq4, eq5, eq6 };
+      }
+
+      /** Table score for a set of levels, or undefined if that key does not exist. */
+      function tableScore(eq1, eq2, eq3, eq4, eq5, eq6) {
+        return MACROVECTOR_SCORES[`${eq1}${eq2}${eq3}${eq4}${eq5}${eq6}`];
+      }
+
+      /** Scores of the next-lower group in each class (undefined = nothing lower). */
+      function nextLowerScores({ eq1, eq2, eq3, eq4, eq5, eq6 }) {
+        let eq3eq6;
+        if (eq3 === 0 && eq6 === 0) {
+          eq3eq6 = Math.max(
+            tableScore(eq1, eq2, eq3, eq4, eq5, eq6 + 1),
+            tableScore(eq1, eq2, eq3 + 1, eq4, eq5, eq6),
+          );
+        } else if (eq3 === 1 && eq6 === 0) {
+          eq3eq6 = tableScore(eq1, eq2, eq3, eq4, eq5, eq6 + 1);
+        } else if (eq3 < 2) {
+          eq3eq6 = tableScore(eq1, eq2, eq3 + 1, eq4, eq5, eq6);
+        }
+        return {
+          eq1: tableScore(eq1 + 1, eq2, eq3, eq4, eq5, eq6),
+          eq2: tableScore(eq1, eq2 + 1, eq3, eq4, eq5, eq6),
+          eq3eq6,
+          eq4: tableScore(eq1, eq2, eq3, eq4 + 1, eq5, eq6),
+          eq5: tableScore(eq1, eq2, eq3, eq4, eq5 + 1, eq6),
+        };
+      }
+
+      /** How far the vector is from the worst-case vector of its group. */
+      function distanceToWorstCase(worstVectors, m) {
+        for (const text of worstVectors) {
+          const worst = Object.fromEntries(
+            text
+              .split("/")
+              .filter(Boolean)
+              .map((part) => part.split(":")),
+          );
+          const gaps = Object.keys(worst).map(
+            (k) => LEVEL_VALUES[k][m[k]] - LEVEL_VALUES[k][worst[k]],
+          );
+          if (gaps.every((gap) => gap >= 0))
+            return gaps.reduce((a, b) => a + b, 0);
+        }
+        return 0;
+      }
+
+      /** Returns the CVSS v4.0 Base score (0.0 to 10.0) for a metrics object. */
+      function calculateCvss40(metrics) {
+        const m = { ...DEFAULT_METRICS, ...metrics };
+        if (IMPACT_METRICS.every((k) => m[k] === "N")) return 0;
+
+        // Steps 1 and 2: classes -> key -> table score
+        const eq = equivalenceClasses(m);
+        const score = tableScore(
+          eq.eq1,
+          eq.eq2,
+          eq.eq3,
+          eq.eq4,
+          eq.eq5,
+          eq.eq6,
+        );
+        const lower = nextLowerScores(eq);
+
+        // Step 3: fine-tune inside each group
+        const groups = [
+          {
+            lower: lower.eq1,
+            max: MAX_SEVERITY.eq1[eq.eq1],
+            worst: WORST_VECTORS.eq1[eq.eq1],
+          },
+          {
+            lower: lower.eq2,
+            max: MAX_SEVERITY.eq2[eq.eq2],
+            worst: WORST_VECTORS.eq2[eq.eq2],
+          },
+          {
+            lower: lower.eq3eq6,
+            max: MAX_SEVERITY.eq3eq6[eq.eq3][eq.eq6],
+            worst: WORST_VECTORS.eq3eq6[eq.eq3][eq.eq6],
+          },
+          {
+            lower: lower.eq4,
+            max: MAX_SEVERITY.eq4[eq.eq4],
+            worst: WORST_VECTORS.eq4[eq.eq4],
+          },
+          // EQ5 (exploit maturity) is a single value per level, so it never differs
+          // from its own worst case and adds no reduction in Base scoring.
+          { lower: lower.eq5, max: 1, worst: [] },
+        ];
+
+        let reduction = 0;
+        let counted = 0;
+        for (const group of groups) {
+          if (group.lower === undefined) continue; // nothing lower to move towards
+          const room = score - group.lower;
+          const share =
+            distanceToWorstCase(group.worst, m) / (group.max * SEVERITY_STEP);
+          reduction += room * share;
+          counted += 1;
+        }
+
+        const final = score - (counted ? reduction / counted : 0);
+        return Math.min(10, Math.max(0, Math.round((final + 1e-6) * 10) / 10));
+      }
+
+      /* ==========================================================================
+   2. QUESTIONS, DEFAULT SETTINGS AND THE VECTOR
+   --------------------------------------------------------------------------
+   The screen asks six questions. Five more metrics are not asked; they start
+   at a default and only change when a vector that sets them is loaded:
+   Attack Vector = Network, User Interaction = None and no impact on
+   subsequent systems.
+
+   Names and values follow the FIRST CVSS v4.0 calculator. The vector looks
+   like this:
+   CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:N/VA:N/SC:N/SI:N/SA:N
+   ========================================================================== */
+
+      const QUESTIONS = ["AC", "AT", "PR", "VC", "VI", "VA"];
+      const VECTOR_ORDER = [
+        "AV",
+        "AC",
+        "AT",
+        "PR",
+        "UI",
+        "VC",
+        "VI",
+        "VA",
+        "SC",
+        "SI",
+        "SA",
+      ];
+      const STANDARD_DEFAULTS = { AV: "N", UI: "N", SC: "N", SI: "N", SA: "N" };
+
+      const IMPACT_VALUES = [
+        ["H", "High"],
+        ["L", "Low"],
+        ["N", "None"],
+      ];
+
+      /** The six questions shown on screen (names and values as in FIRST's calculator). */
+      const METRICS = {
+        AC: {
+          name: "Attack Complexity",
+          options: [
+            ["L", "Low"],
+            ["H", "High"],
+          ],
+        },
+        AT: {
+          name: "Attack Requirements",
+          options: [
+            ["N", "None"],
+            ["P", "Present"],
+          ],
+        },
+        PR: {
+          name: "Privileges Required",
+          options: [
+            ["N", "None"],
+            ["L", "Low"],
+            ["H", "High"],
+          ],
+        },
+        VC: {
+          name: "Confidentiality",
+          options: IMPACT_VALUES,
+        },
+        VI: {
+          name: "Integrity",
+          options: IMPACT_VALUES,
+        },
+        VA: {
+          name: "Availability",
+          options: IMPACT_VALUES,
+        },
+      };
+
+      /** The five metrics that are not asked (only used to describe them on screen). */
+      const UNASKED_METRICS = {
+        AV: {
+          name: "Attack Vector",
+          values: { N: "Network", A: "Adjacent", L: "Local", P: "Physical" },
+        },
+        UI: {
+          name: "User Interaction",
+          values: { N: "None", P: "Passive", A: "Active" },
+        },
+        SC: {
+          name: "Subsequent System Confidentiality",
+          values: { H: "High", L: "Low", N: "None" },
+        },
+        SI: {
+          name: "Subsequent System Integrity",
+          values: { H: "High", L: "Low", N: "None" },
+        },
+        SA: {
+          name: "Subsequent System Availability",
+          values: { H: "High", L: "Low", N: "None" },
+        },
+      };
+
+      const VALID_VALUES = {
+        AV: "NALP",
+        AC: "LH",
+        AT: "NP",
+        PR: "NLH",
+        UI: "NPA",
+        VC: "NLH",
+        VI: "NLH",
+        VA: "NLH",
+        SC: "NLH",
+        SI: "NLH",
+        SA: "NLH",
+      };
+
+      /** Builds the vector and the score once every question is answered. */
+      function buildResult(answers, defaults) {
+        if (!QUESTIONS.every((k) => answers[k] !== undefined)) return null;
+        const metrics = { ...defaults, ...answers };
+        return {
+          vector:
+            "CVSS:4.0/" +
+            VECTOR_ORDER.map((k) => `${k}:${metrics[k]}`).join("/"),
+          score: calculateCvss40(metrics),
+        };
+      }
+
+      /** Reads a vector. Returns the answers it contains and the default settings it sets. */
+      function parseVector(text) {
+        const match = text.match(/^(CVSS:4\.0|CV40)\/(.+)$/i);
+        if (!match) throw new Error("Enter a CVSS:4.0 or CV40 Base vector.");
+
+        const metrics = {};
+        for (const field of match[2].split("/")) {
+          const [, key, value] = field.match(/^([A-Z]{1,2}):([A-Z])$/) || [];
+          if (!key) throw new Error("Malformed vector field.");
+          if (
+            !(key in VALID_VALUES) ||
+            key in metrics ||
+            !VALID_VALUES[key].includes(value)
+          ) {
+            throw new Error("Invalid or duplicate metric: " + field);
+          }
+          metrics[key] = value;
+        }
+
+        const answers = {};
+        for (const key of QUESTIONS)
+          if (metrics[key] !== undefined) answers[key] = metrics[key];
+        const defaults = { ...STANDARD_DEFAULTS };
+        for (const key of Object.keys(defaults))
+          if (metrics[key] !== undefined) defaults[key] = metrics[key];
+        return { answers, defaults };
+      }
+
+      /** Plain-language list of the settings that are not asked. */
+      function describeDefaults(defaults) {
+        const label = (key) =>
+          `${UNASKED_METRICS[key].name}: ${UNASKED_METRICS[key].values[defaults[key]]}`;
+        const subsequent = ["SC", "SI", "SA"];
+        const others = subsequent.every((k) => defaults[k] === "N")
+          ? "Subsequent systems: no impact"
+          : subsequent.map(label).join(" · ");
+        return [label("AV"), label("UI"), others].join(" · ");
+      }
+
+      /** Which default settings differ from the standard ones. */
+      function changedDefaults(defaults) {
+        return Object.keys(STANDARD_DEFAULTS).filter(
+          (k) => defaults[k] !== STANDARD_DEFAULTS[k],
+        );
+      }
+
+      /* ==========================================================================
+   3. SCREEN RENDERING
+   ========================================================================== */
+
+      let answers = {};
+      let defaults = { ...STANDARD_DEFAULTS };
+      let result = null;
+
+      function severity(score) {
+        if (score === 0) return "None";
+        if (score < 4) return "Low";
+        if (score < 7) return "Medium";
+        if (score < 9) return "High";
+        return "Critical";
+      }
+
+      function renderField(key) {
+        const metric = METRICS[key];
+        const answered = answers[key] !== undefined;
+        const options = metric.options
+          .map(
+            ([value, label]) =>
+              `<option value="${value}" ${value === answers[key] ? "selected" : ""}>${label}</option>`,
+          )
+          .join("");
+
+        return `
+    <div class="field ${answered ? "answered" : ""}" data-field="${key}">
+      <label for="field-${key}">${metric.name} <span class="field-code">(${key})</span></label>
+      <select id="field-${key}" data-metric="${key}" required>
+        <option value="" ${answered ? "" : "selected"} disabled>Choose one</option>
+        ${options}
+      </select>
+    </div>`;
+      }
+
+      function renderFields() {
+        $("fields").innerHTML = QUESTIONS.map(renderField).join("");
+        update();
+      }
+
+      function notice(message = "", ok = false) {
+        $("msg").textContent = message;
+        $("msg").dataset.kind = message ? (ok ? "ok" : "bad") : "";
+      }
+
+      function setHash(vector) {
+        try {
+          const hash = vector ? "#" + encodeURIComponent(vector) : "";
+          history.replaceState(
+            null,
+            "",
+            location.pathname + location.search + hash,
+          );
+        } catch (_) {
+          /* some sandboxes block history changes */
+        }
+      }
+
+      /** Recalculates the result and refreshes everything that depends on it. */
+      function update() {
+        result = null;
+        try {
+          result = buildResult(answers, defaults);
+        } catch (_) {
+          notice("Unable to calculate a score for these answers.");
+        }
+
+        const score = result ? result.score : null;
+        const level = score === null ? "None" : severity(score);
+
+        $("score").textContent = score === null ? "—" : score.toFixed(1);
+        $("score").classList.toggle("score-uniform-size", score !== null);
+        $("severity").textContent = score === null ? "Not rated" : level;
+        $("status").textContent =
+          score === null
+            ? "Answer every question to see your score."
+            : `${level} severity · Assessment complete.`;
+
+        $("toolbarScore").dataset.scoreSeverity = score === null ? "Pending" : level;
+
+        $("customVector").textContent = result
+          ? result.vector
+          : "Answer every question to generate a vector";
+        $("customVector").classList.toggle("placeholder", !result);
+
+        document.querySelectorAll(".sev-pill").forEach((pill) => {
+          const active = score !== null && pill.dataset.sev === level;
+          pill.classList.toggle("active", active);
+          if (active) pill.setAttribute("aria-current", "true");
+          else pill.removeAttribute("aria-current");
+        });
+
+        $("copyInline").disabled = !result;
+        $("assumptions").textContent =
+          "Also included in the score: " + describeDefaults(defaults) + ".";
+        const settingsChanged = changedDefaults(defaults).length > 0;
+        $("fixedDefaultsText").textContent =
+          (settingsChanged ? "Vector settings: " : "Fixed defaults: ") +
+          `${UNASKED_METRICS.AV.values[defaults.AV]} (AV:${defaults.AV}) · ` +
+          `User action: ${UNASKED_METRICS.UI.values[defaults.UI]} (UI:${defaults.UI}) · ` +
+          (defaults.SC === "N" && defaults.SI === "N" && defaults.SA === "N"
+            ? "Other systems: None (SC:N, SI:N, SA:N)"
+            : `Other systems: SC:${defaults.SC} · SI:${defaults.SI} · SA:${defaults.SA}`);
+        setHash(result ? result.vector : "");
+      }
+
+      /* ==========================================================================
+   4. ACTIONS AND START-UP
+   ========================================================================== */
+
+      function chooseMetric(key, value) {
+        if (!METRICS[key] || !METRICS[key].options.some(([v]) => v === value))
+          return;
+        answers[key] = value;
+        const field = document.querySelector(`[data-field="${key}"]`);
+        if (field) field.classList.add("answered");
+        update();
+        notice();
+      }
+
+      function importVector(raw, showMessages = true) {
+        let text = raw.trim().replace(/^#/, "");
+        try {
+          text = decodeURIComponent(text);
+        } catch (_) {
+          /* not URL-encoded, use as typed */
+        }
+
+        try {
+          ({ answers, defaults } = parseVector(text));
+        } catch (error) {
+          if (showMessages) notice(error.message);
+          return false;
+        }
+
+        renderFields();
+        showView("calculator");
+        // Loading a valid vector is self-evident from the populated selections,
+        // score, and fixed/default metrics. Keep the message area clear.
+        // Invalid vectors are still reported by the catch block above.
+        notice();
+        return true;
+      }
+
+      const CHECK_ICON =
+        '<svg aria-hidden="true" fill="none" height="17" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24" width="17"><path d="m5 12 4 4L19 6"/></svg>';
+
+      async function copyToClipboard(text) {
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch (_) {
+          const box = document.createElement("textarea");
+          box.value = text;
+          box.style.cssText = "position:fixed;left:-9999px";
+          document.body.append(box);
+          box.select();
+          let ok = false;
+          try {
+            ok = document.execCommand("copy");
+          } catch (_) {
+            /* copy not allowed */
+          }
+          box.remove();
+          return ok;
+        }
+      }
+
+      /** Copy button on the vector card: shows the result in the card header. */
+      async function copyVector(button) {
+        if (!result) return;
+        const ok = await copyToClipboard(result.vector);
+        const status = $("vectorCopyStatus");
+        if (!button.dataset.icon) button.dataset.icon = button.innerHTML;
+
+        clearTimeout(button.resetTimer);
+        status.textContent = ok ? "✓ Copied" : "Copy failed";
+        status.classList.toggle("copy-success", ok);
+        status.classList.toggle("copy-error", !ok);
+        button.classList.toggle("copy-success", ok);
+        button.classList.toggle("copy-error", !ok);
+        button.innerHTML = ok ? CHECK_ICON : button.dataset.icon;
+        button.setAttribute("aria-label", ok ? "Vector copied" : "Copy failed");
+        button.title = ok ? "Copied" : "Copy failed";
+
+        button.resetTimer = setTimeout(() => {
+          button.innerHTML = button.dataset.icon;
+          button.classList.remove("copy-success", "copy-error");
+          button.setAttribute("aria-label", "Copy vector");
+          button.title = "Copy vector";
+          status.textContent = "CVSS v4.0 format";
+          status.classList.remove("copy-success", "copy-error");
+        }, 1500);
+      }
+
+      /** Switches between the calculator and the (normally hidden) Load vector tab. */
+      function showView(view) {
+        const loading = view === "load";
+        $("loadPanel").hidden = !loading;
+        $("workspace").hidden = loading;
+        for (const [id, active] of [
+          ["tabCalc", !loading],
+          ["tabLoad", loading],
+        ]) {
+          $(id).classList.toggle("active", active);
+          $(id).setAttribute("aria-pressed", String(active));
+        }
+        if (loading) $("vin").focus();
+      }
+
+      function setTheme(theme) {
+        document.documentElement.dataset.theme = theme;
+        $("tg").textContent = theme === "dark" ? "☾" : "☀";
+        $("tg").ariaLabel =
+          `Switch to ${theme === "dark" ? "light" : "dark"} mode`;
+        try {
+          localStorage.setItem("s369-theme", theme);
+        } catch (_) {
+          /* storage not available */
+        }
+      }
+
+      function init() {
+        // Questions
+        $("questionArea").addEventListener("change", (e) => {
+          const select = e.target.closest("select[data-metric]");
+          if (select) chooseMetric(select.dataset.metric, select.value);
+        });
+
+        // Tabs, vector import and reset
+        $("tabCalc").addEventListener("click", () => showView("calculator"));
+        $("tabLoad").addEventListener("click", () => showView("load"));
+        $("ld").addEventListener("click", () => importVector($("vin").value));
+        $("vin").addEventListener("keydown", (e) => {
+          if (e.key === "Enter") importVector(e.target.value);
+        });
+        $("rs").addEventListener("click", () => {
+          answers = {};
+          defaults = { ...STANDARD_DEFAULTS };
+          $("vin").value = "";
+          renderFields();
+          notice("Answers reset.", true);
+        });
+
+        // Copy button and links to a vector
+        $("copyInline").addEventListener("click", (e) =>
+          copyVector(e.currentTarget),
+        );
+        window.addEventListener("hashchange", () => {
+          if (location.hash.length > 1) importVector(location.hash.slice(1));
+        });
+
+        // Theme
+        let theme = "dark";
+        try {
+          theme = localStorage.getItem("s369-theme") || "dark";
+        } catch (_) {
+          /* storage not available */
+        }
+        setTheme(theme);
+        $("tg").addEventListener("click", () =>
+          setTheme(
+            document.documentElement.dataset.theme === "dark"
+              ? "light"
+              : "dark",
+          ),
+        );
+
+        renderFields();
+        if (location.hash.length > 1) importVector(location.hash.slice(1));
+      }
+
+      init();
+    </script>
+</body>
+</html>
