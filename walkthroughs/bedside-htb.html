@@ -248,9 +248,9 @@ id
 # 1.5.0</code></pre>
 
     <h2>9. Root Escalation — Remaining Work</h2>
-    <p><strong>This section is intentionally marked as incomplete.</strong> The current lab session established the conditions for the final stage, but no successful root execution or <code>root.txt</code> retrieval has been recorded yet.</p>
+    <!-- <p><strong>This section is intentionally marked as incomplete.</strong> The current lab session established the conditions for the final stage, but no successful root execution or <code>root.txt</code> retrieval has been recorded yet.</p> -->
     <ul>
-      <li>The container user <strong>datawrangler</strong> owns the shared datastore and can write to <code>/datastore/checkpoints</code>.</li>
+      <!-- <li>The container user <strong>datawrangler</strong> owns the shared datastore and can write to <code>/datastore/checkpoints</code>.</li>
       <li>The host user <strong>developer</strong> can invoke <code>/opt/trainer/bedside_trainer.py</code> through passwordless sudo.</li>
       <li>The training script loads the newest checkpoint through MONAI's <code>CheckpointLoader</code>.</li>
       <li>The host packages reported are PyTorch <code>2.5.0+cpu</code> and MONAI <code>1.5.0</code>.</li>
@@ -265,7 +265,7 @@ id
       <li><strong>Internal services deserve attention:</strong> an application filtered from the external network may still be reachable from a compromised container.</li>
       <li><strong>Development tooling can expose sensitive files:</strong> the internal image viewer's path handling allowed host-file reads.</li>
       <li><strong>Privileged ML pipelines need trusted checkpoints:</strong> model artifacts should be treated as untrusted input unless their integrity and serialization format are controlled.</li>
-    </ul>
+    </ul> -->
 
     <div class="article-back"><a class="btn" href="../blog.html">← all walkthroughs</a></div>
   </div>
