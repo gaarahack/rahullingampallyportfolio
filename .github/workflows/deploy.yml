@@ -1,0 +1,51 @@
+
+name: Portfolio CI/CD Pipeline
+
+# Trigger pipeline whenever code is pushed to main
+on:
+  push:
+    branches:
+      - main
+
+  # Allow manual execution
+  workflow_dispatch:
+
+# Required permissions for GitHub Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Prevent conflicting deployments
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build and Deploy Portfolio
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      # Step 1: Download repository source code
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Step 2: Configure GitHub Pages
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      # Step 3: Package website files
+      - name: Upload Website Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      # Step 4: Deploy website
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
